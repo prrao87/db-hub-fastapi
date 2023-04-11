@@ -2,7 +2,7 @@ import json
 import zipfile
 from typing import Any, Iterator
 
-JsonBlob = dict[str, Any]
+JsonBlob = dict[str,Any]
 
 
 def read_data(filename: str) -> list[JsonBlob]:
