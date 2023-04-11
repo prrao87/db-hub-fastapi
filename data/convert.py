@@ -8,6 +8,8 @@ JsonBlob = dict[str, Any]
 def read_data(filename: str) -> list[JsonBlob]:
     with open(filename) as f:
         data = json.load(f)
+        for idx, item in enumerate(data, 1):
+            item["id"] = idx
     return data
 
 
