@@ -1,12 +1,30 @@
 name: Lint
 
-on: [push, pull_request]
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  lint:
+  run-linters:
+    name: Run linters
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: psf/black@stable
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          options: "--target-version py311 --line-length 120"
+          python-version: 3.11
+
+      - name: Install Python dependencies
+        run: pip install black
+
+      - name: Run linters
+        uses: wearerequired/lint-action@v2
+        with:
+          black: true
