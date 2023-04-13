@@ -45,10 +45,7 @@ class Wine(BaseModel):
                 "id": 45100,
                 "points": 85,
                 "title": "Balduzzi 2012 Reserva Merlot (Maule Valley)",
-                "description": "Ripe in color and aromas, this chunky wine delivers heavy  \
-                                baked-berry and raisin aromas in front of a jammy, extracted \
-                                palate. Raisin and cooked berry flavors finish plump, with \
-                                earthy notes.",
+                "description": "Ripe in color and aromas, this chunky wine delivers heavy baked-berry and raisin aromas in front of a jammy, extracted palate. Raisin and cooked berry flavors finish plump, with earthy notes.",
                 "price": 10.0,
                 "variety": "Merlot",
                 "winery": "Balduzzi",
@@ -87,3 +84,26 @@ class Wine(BaseModel):
         for key in taster.keys():
             values.pop(key)
         return values
+
+
+class SearchByKeywords(BaseModel):
+    wineID: int
+    country: str
+    title: str
+    points: int
+    price: float | str
+    variety: str | None
+    winery: str | None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "wineID": 3845,
+                "country": "Italy",
+                "title": "Castellinuzza e Piuca 2010  Chianti Classico",
+                "points": 93,
+                "price": 16,
+                "variety": "Red Blend",
+                "winery": "Castellinuzza e Piuca"
+            }
+        }
