@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  db:
+    container_name: neo4j_wine
+    image: neo4j:${NEO4J_VERSION}
+    restart: unless-stopped
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_PLUGINS=["graph-data-science", "apoc"]
+      # DB and server
+      - NEO4J_server_memory_pagecache_size=1G
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=2G
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
+    ports:
+      - 7687:7687
+    volumes:
+      - logs:/logs
+      - data:/data
+      - plugins:/plugins
+      - import:/import
+    networks:
+      - wine
+
+  fastapi:
+    build: .
+    container_name: neo4j_wine_fastapi
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    volumes:
+      - ./api:/wine/api
+    networks:
+      - wine
+    command:
+      - "uvicorn"
+      - "api.main:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--reload"
+
+volumes:
+  logs:
+  data:
+  plugins:
+  import:
+
+networks:
+  wine:
+    driver: bridge
