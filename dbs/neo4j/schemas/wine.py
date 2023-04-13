@@ -104,6 +104,6 @@ class SearchByKeywords(BaseModel):
                 "points": 93,
                 "price": 16,
                 "variety": "Red Blend",
-                "winery": "Castellinuzza e Piuca"
+                "winery": "Castellinuzza e Piuca",
             }
         }

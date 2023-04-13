@@ -8,14 +8,17 @@ wine_router = APIRouter()
 
 # --- Routes ---
 
+
 @wine_router.get(
     "/search",
     response_model=list[SearchByKeywords],
-    response_description="Search wines by title and description"
+    response_description="Search wines by title and description",
 )
 async def create_constraint(
     request: Request,
-    search_string: str = Query(description="Search wine by keywords in title or description")
+    search_string: str = Query(
+        description="Search wine by keywords in title or description"
+    ),
 ) -> list[SearchByKeywords] | None:
     session = request.app.state.db_session
     result = await session.execute_read(_search_by_title_and_desc, search_string)
@@ -28,6 +31,7 @@ async def create_constraint(
 
 
 # --- Neo4j query funcs ---
+
 
 async def _search_by_title_and_desc(
     tx: AsyncManagedTransaction,
