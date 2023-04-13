@@ -23,6 +23,7 @@ JsonBlob = dict[str, Any]
 class FileNotFoundError(Exception):
     pass
 
+
 # --- Blocking functions ---
 
 
@@ -30,7 +31,9 @@ def get_json_files(file_prefix: str, file_path: Path) -> list[str]:
     """Get all line-delimited json files (.jsonl) from a directory with a given prefix"""
     files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
     if not files:
-        raise FileNotFoundError(f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`")
+        raise FileNotFoundError(
+            f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
+        )
     return files
 
 
@@ -62,15 +65,16 @@ def read_jsonl_from_file(filename: str) -> list[JsonBlob]:
 
 
 def validate(
-        data: list[JsonBlob],
-        model: ModelMetaclass,
-        exclude_none: bool = False,
+    data: list[JsonBlob],
+    model: ModelMetaclass,
+    exclude_none: bool = False,
 ) -> list[JsonBlob]:
     validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
 # --- Async functions ---
+
 
 async def create_indexes_and_constraints(session: AsyncSession) -> None:
     queries = [
@@ -127,7 +131,9 @@ async def wine_province_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) 
     await tx.run(query, data=data)
 
 
-async def country_province_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None:
+async def country_province_rels(
+    tx: AsyncManagedTransaction, data: list[JsonBlob]
+) -> None:
     query = """
         UNWIND $data AS d
         UNWIND d.location as loc
@@ -155,7 +161,9 @@ async def wine_taster_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) ->
 
 
 async def main(files: list[str]) -> None:
-    async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
+    async with AsyncGraphDatabase.driver(
+        URI, auth=(NEO4J_USER, NEO4J_PASSWORD)
+    ) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)
@@ -173,9 +181,23 @@ async def main(files: list[str]) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Build a graph from the wine reviews JSONL data")
-    parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
-    parser.add_argument("--refresh", action="store_true", help="Refresh zip file data by clearing existing directory & extracting them again")
-    parser.add_argument("--filename", type=str, default="winemag-data-130k-v2-jsonl.zip", help="Name of the JSONL zip file to use")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Limit the size of the dataset to load for testing purposes",
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Refresh zip file data by clearing existing directory & extracting them again",
+    )
+    parser.add_argument(
+        "--filename",
+        type=str,
+        default="winemag-data-130k-v2-jsonl.zip",
+        help="Name of the JSONL zip file to use",
+    )
     args = vars(parser.parse_args())
 
     LIMIT = args["limit"]
@@ -184,7 +206,7 @@ if __name__ == "__main__":
     # Get file path for unzipped files
     filename = Path(args["filename"]).stem
     FILE_PATH = DATA_DIR / filename
-    
+
     # # Neo4j
     URI = "bolt://localhost:7687"
     NEO4J_USER = "neo4j"

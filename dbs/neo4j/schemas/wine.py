@@ -58,7 +58,7 @@ class Wine(BaseModel):
                 "region_1": "null",
                 "region_2": "null",
                 "taster_name": "Michael Schachner",
-                "taster_twitter_handle": "@wineschach"
+                "taster_twitter_handle": "@wineschach",
             }
         }
 
