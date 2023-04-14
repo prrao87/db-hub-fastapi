@@ -225,5 +225,6 @@ if __name__ == "__main__":
         files = files[:LIMIT]
     # Run async graph loader
     import uvloop
+
     uvloop.install()
     asyncio.run(main(files))

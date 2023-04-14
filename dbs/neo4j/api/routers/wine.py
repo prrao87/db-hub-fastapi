@@ -16,9 +16,7 @@ wine_router = APIRouter()
 )
 async def search_by_keyword(
     request: Request,
-    terms: str = Query(
-        description="Search wine by keywords in title or description"
-    ),
+    terms: str = Query(description="Search wine by keywords in title or description"),
     max_price: float = 10000.0,
 ) -> list[FullTextSearch] | None:
     session = request.app.state.db_session
