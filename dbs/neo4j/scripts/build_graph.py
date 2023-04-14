@@ -84,7 +84,7 @@ async def create_indexes_and_constraints(session: AsyncSession) -> None:
         # indexes
         "CREATE INDEX provinceName IF NOT EXISTS FOR (p:Province) ON (p.provinceName) ",
         "CREATE INDEX tasterName IF NOT EXISTS FOR (p:Person) ON (p.tasterName) ",
-        "CREATE FULLTEXT INDEX titlesAndDescriptions IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description] ",
+        "CREATE FULLTEXT INDEX searchText IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description, w.variety] ",
     ]
     for query in queries:
         await session.run(query)

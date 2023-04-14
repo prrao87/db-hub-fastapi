@@ -38,14 +38,14 @@ app = FastAPI(
     description=(
         "Query from a Neo4j database of 130k wine reviews from the Wine Enthusiast magazine"
     ),
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return {"message": "REST API for querying wine reviews Neo4j data"}
+    return {"message": "REST API for querying Neo4j database of 130k wine reviews from the Wine Enthusiast magazine"}
 
 
 # Attach routes
