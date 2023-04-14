@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from neo4j import AsyncManagedTransaction
-
 from schemas.retriever import (
     FullTextSearch,
+    MostWinesByVariety,
     TopWinesByCountry,
     TopWinesByProvince,
-    MostWinesByVariety,
 )
 
 wine_router = APIRouter()
