@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from neo4j import AsyncManagedTransaction
 
-from schemas.retriever import FullTextSearch, TopWinesByCountry, TopWinesByProvince, MostWinesByVariety
+from schemas.retriever import (
+    FullTextSearch,
+    TopWinesByCountry,
+    TopWinesByProvince,
+    MostWinesByVariety,
+)
 
 wine_router = APIRouter()
 
@@ -17,7 +22,9 @@ wine_router = APIRouter()
 async def search_by_keywords(
     request: Request,
     terms: str = Query(description="Search wine by keywords in title or description"),
-    max_price: float = Query(default=10000.0, description="Specify the maximum price for the wine (e.g., 30)")
+    max_price: float = Query(
+        default=10000.0, description="Specify the maximum price for the wine (e.g., 30)"
+    ),
 ) -> list[FullTextSearch] | None:
     session = request.app.state.db_session
     result = await session.execute_read(_search_by_keywords, terms, max_price)
@@ -78,8 +85,13 @@ async def top_by_province(
 )
 async def most_by_variety(
     request: Request,
-    variety: str = Query(description="Specify the variety of wine to search for (e.g., 'Pinot Noir' or 'Red Blend')"),
-    points: int = Query(default=85, description="Specify the minimum points-rating for the wine (e.g., 85)"),
+    variety: str = Query(
+        description="Specify the variety of wine to search for (e.g., 'Pinot Noir' or 'Red Blend')"
+    ),
+    points: int = Query(
+        default=85,
+        description="Specify the minimum points-rating for the wine (e.g., 85)",
+    ),
 ) -> list[MostWinesByVariety] | None:
     session = request.app.state.db_session
     result = await session.execute_read(_most_by_variety, variety, points)
