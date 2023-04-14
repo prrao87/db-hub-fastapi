@@ -45,3 +45,8 @@ class TopWinesByProvince(BaseModel):
     price: float | str
     variety: str | None
     winery: str | None
+
+
+class MostWinesByCountry(BaseModel):
+    country: str
+    wineCount: int

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from neo4j import AsyncManagedTransaction
 
-from schemas.retriever import FullTextSearch, TopWinesByCountry, TopWinesByProvince
+from schemas.retriever import FullTextSearch, TopWinesByCountry, TopWinesByProvince, MostWinesByCountry
 
 wine_router = APIRouter()
 
@@ -17,10 +17,10 @@ wine_router = APIRouter()
 async def search_by_keyword(
     request: Request,
     terms: str = Query(description="Search wine by keywords in title or description"),
-    max_price: float = 10000.0,
+    max_price: float = Query(default=10000.0, description="Specify the maximum price for the wine (e.g., 30)")
 ) -> list[FullTextSearch] | None:
     session = request.app.state.db_session
-    result = await session.execute_read(_search_by_title_and_desc, terms, max_price)
+    result = await session.execute_read(_search_by_keyword, terms, max_price)
     if not result:
         raise HTTPException(
             status_code=404,
@@ -71,10 +71,30 @@ async def top_by_province(
     return result
 
 
+@wine_router.get(
+    "/most_wines_by_country",
+    response_model=list[MostWinesByCountry],
+    response_description="Get the countries with the most wines above a points-rating of a specified variety (blended or otherwise)",
+)
+async def most_wines_by_country(
+    request: Request,
+    variety: str = Query(description="Specify the variety of wine to search for (e.g., 'Pinot Noir' or 'Red Blend')"),
+    points: int = Query(default=85, description="Specify the minimum points-rating for the wine (e.g., 85)"),
+) -> list[MostWinesByCountry] | None:
+    session = request.app.state.db_session
+    result = await session.execute_read(_most_wines_by_country, variety, points)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No wine of the specified variety '{variety}' found in database - please try a different variety",
+        )
+    return result
+
+
 # --- Neo4j query funcs ---
 
 
-async def _search_by_title_and_desc(
+async def _search_by_keyword(
     tx: AsyncManagedTransaction,
     terms: str,
     price: float,
@@ -105,7 +125,7 @@ async def _top_by_country(
     country: str,
 ) -> list[TopWinesByCountry] | None:
     query = """
-        MATCH (wine:Wine)-[:IS_FROM_COUNTRY]->(country:Country)
+        MATCH (wine:Wine)-[:IS_FROM_COUNTRY]->(c:Country)
         WHERE tolower(c.countryName) = tolower($country)
         RETURN
             wine.wineID AS wineID,
@@ -143,5 +163,25 @@ async def _top_by_province(
         ORDER BY points DESC LIMIT 5
     """
     response = await tx.run(query, province=province)
+    result = await response.data()
+    return result
+
+
+async def _most_wines_by_country(
+    tx: AsyncManagedTransaction,
+    variety: str,
+    points: int,
+) -> list[TopWinesByProvince] | None:
+    query = """
+        CALL db.index.fulltext.queryNodes("searchText", $variety) YIELD node AS wine, score
+        WITH wine
+            MATCH (wine)-[:IS_FROM_COUNTRY]->(c:Country)
+            WHERE wine.points >= $points
+        RETURN
+            c.countryName AS country,
+            count(wine) as wineCount
+        ORDER BY wineCount DESC LIMIT 5
+    """
+    response = await tx.run(query, variety=variety, points=points)
     result = await response.data()
     return result
