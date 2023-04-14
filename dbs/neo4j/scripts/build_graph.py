@@ -113,7 +113,7 @@ async def wine_country_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) -
         UNWIND d.location as loc
         WITH wine, loc
             WHERE loc.country IS NOT NULL
-            MERGE (country:Country:Location {countryName: loc.country})
+            MERGE (country:Country {countryName: loc.country})
             MERGE (wine)-[:IS_FROM_COUNTRY]->(country)
     """
     await tx.run(query, data=data)
@@ -126,7 +126,7 @@ async def wine_province_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) 
         UNWIND d.location as loc
         WITH wine, loc
             WHERE loc.province IS NOT NULL
-            MERGE (province:Province:Location {provinceName: loc.province})
+            MERGE (province:Province {provinceName: loc.province})
             MERGE (wine)-[:IS_FROM_PROVINCE]->(province)
     """
     await tx.run(query, data=data)
