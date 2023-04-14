@@ -47,6 +47,6 @@ class TopWinesByProvince(BaseModel):
     winery: str | None
 
 
-class MostWinesByCountry(BaseModel):
+class MostWinesByVariety(BaseModel):
     country: str
     wineCount: int

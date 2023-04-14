@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from neo4j import AsyncManagedTransaction
 
-from schemas.retriever import FullTextSearch, TopWinesByCountry, TopWinesByProvince, MostWinesByCountry
+from schemas.retriever import FullTextSearch, TopWinesByCountry, TopWinesByProvince, MostWinesByVariety
 
 wine_router = APIRouter()
 
@@ -32,12 +32,12 @@ async def search_by_keywords(
 @wine_router.get(
     "/top_by_country",
     response_model=list[TopWinesByCountry],
-    response_description="Get top wines by country",
+    response_description="Get top-rated wines by country",
 )
 async def top_by_country(
     request: Request,
     country: str = Query(
-        description="Get top wines by country name specified (must be exact name)"
+        description="Get top-rated wines by country name specified (must be exact name)"
     ),
 ) -> list[TopWinesByCountry] | None:
     session = request.app.state.db_session
@@ -53,12 +53,12 @@ async def top_by_country(
 @wine_router.get(
     "/top_by_province",
     response_model=list[TopWinesByProvince],
-    response_description="Get top wines by province",
+    response_description="Get top-rated wines by province",
 )
 async def top_by_province(
     request: Request,
     province: str = Query(
-        description="Get top wines by province name specified (must be exact name)"
+        description="Get top-rated wines by province name specified (must be exact name)"
     ),
 ) -> list[TopWinesByProvince] | None:
     session = request.app.state.db_session
@@ -72,17 +72,17 @@ async def top_by_province(
 
 
 @wine_router.get(
-    "/most_wines_by_country",
-    response_model=list[MostWinesByCountry],
+    "/most_by_variety",
+    response_model=list[MostWinesByVariety],
     response_description="Get the countries with the most wines above a points-rating of a specified variety (blended or otherwise)",
 )
-async def most_wines_by_country(
+async def most_by_variety(
     request: Request,
     variety: str = Query(description="Specify the variety of wine to search for (e.g., 'Pinot Noir' or 'Red Blend')"),
     points: int = Query(default=85, description="Specify the minimum points-rating for the wine (e.g., 85)"),
-) -> list[MostWinesByCountry] | None:
+) -> list[MostWinesByVariety] | None:
     session = request.app.state.db_session
-    result = await session.execute_read(_most_wines_by_country, variety, points)
+    result = await session.execute_read(_most_by_variety, variety, points)
     if not result:
         raise HTTPException(
             status_code=404,
@@ -167,11 +167,11 @@ async def _top_by_province(
     return result
 
 
-async def _most_wines_by_country(
+async def _most_by_variety(
     tx: AsyncManagedTransaction,
     variety: str,
     points: int,
-) -> list[TopWinesByProvince] | None:
+) -> list[MostWinesByVariety] | None:
     query = """
         CALL db.index.fulltext.queryNodes("searchText", $variety) YIELD node AS wine, score
         WITH wine
