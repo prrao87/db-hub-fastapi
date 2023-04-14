@@ -14,13 +14,13 @@ wine_router = APIRouter()
     response_model=list[FullTextSearch],
     response_description="Search wines by title and description",
 )
-async def search_by_keyword(
+async def search_by_keywords(
     request: Request,
     terms: str = Query(description="Search wine by keywords in title or description"),
     max_price: float = Query(default=10000.0, description="Specify the maximum price for the wine (e.g., 30)")
 ) -> list[FullTextSearch] | None:
     session = request.app.state.db_session
-    result = await session.execute_read(_search_by_keyword, terms, max_price)
+    result = await session.execute_read(_search_by_keywords, terms, max_price)
     if not result:
         raise HTTPException(
             status_code=404,
@@ -94,7 +94,7 @@ async def most_wines_by_country(
 # --- Neo4j query funcs ---
 
 
-async def _search_by_keyword(
+async def _search_by_keywords(
     tx: AsyncManagedTransaction,
     terms: str,
     price: float,
