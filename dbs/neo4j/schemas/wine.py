@@ -84,26 +84,3 @@ class Wine(BaseModel):
         for key in taster.keys():
             values.pop(key)
         return values
-
-
-class SearchByKeywords(BaseModel):
-    wineID: int
-    country: str
-    title: str
-    points: int
-    price: float | str
-    variety: str | None
-    winery: str | None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "wineID": 3845,
-                "country": "Italy",
-                "title": "Castellinuzza e Piuca 2010  Chianti Classico",
-                "points": 93,
-                "price": 16,
-                "variety": "Red Blend",
-                "winery": "Castellinuzza e Piuca",
-            }
-        }

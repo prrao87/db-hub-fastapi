@@ -24,8 +24,8 @@ services:
       - wine
 
   fastapi:
+    image: neo4j_wine_fastapi:${TAG}
     build: .
-    container_name: neo4j_wine_fastapi
     restart: unless-stopped
     env_file:
       - .env
@@ -34,17 +34,10 @@ services:
     depends_on:
       - db
     volumes:
-      - ./api:/wine/api
+      - ./:/wine
     networks:
       - wine
-    command:
-      - "uvicorn"
-      - "api.main:app"
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "8000"
-      - "--reload"
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
   logs:

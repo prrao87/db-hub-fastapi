@@ -111,24 +111,6 @@ This cURL request passes a search string "**tuscany red**" to the `/wine/search/
         "price": "Not available",
         "variety": "Red Blend",
         "winery": "Torrenera"
-    },
-    {
-        "wineID": 40960,
-        "country": "Italy",
-        "title": "Fattoria di Grignano 2011 Pietramaggio Red (Toscana)",
-        "points": 86,
-        "price": 11.0,
-        "variety": "Red Blend",
-        "winery": "Fattoria di Grignano"
-    },
-    {
-        "wineID": 55924,
-        "country": "Italy",
-        "title": "Col d'Orcia 2011 Spezieri Red (Toscana)",
-        "points": 87,
-        "price": 17.0,
-        "variety": "Red Blend",
-        "winery": "Col d'Orcia"
     }
 ]
 ```
@@ -145,3 +127,35 @@ The API can be easily extended with the provided structure.
   - For e.g.: "What are the top rated wines from Argentina?"
   - In general, it makes sense to organize specific business use cases into their own router files
 - The `api/main.py` file collects all the routes and schemas to run the API
+
+
+#### Existing endpoints
+
+So far, the following endpoints that help answer interesting questions have been implemented.
+
+```
+GET
+/wine/search
+Search By Keywords
+```
+
+```
+GET
+/wine/top_by_country
+Top By Country
+```
+
+```
+GET
+/wine/top_by_province
+Top By Province
+```
+
+```
+GET
+/wine/most_by_variety
+Most By Variety
+```
+
+Run the FastAPI app in a docker container to explore them!
+

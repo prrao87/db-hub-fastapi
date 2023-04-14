@@ -2,13 +2,15 @@
 
 This repo aims to provide working code and reproducible setups for asynchronous data ingestion and querying from numerous databases via Python. Wherever possible, data is ingested to a database via their supported async Python drivers, and the data is also queried in async fashion on top of FastAPI endpoints.
 
-Example code for the following databases are provided, along with a FastAPI deployment that allow you to query the database in question:
+Example code is provided for numerous databases, along with FastAPI docker deployments that allow you to easily supply complex query results to downstream applications.
 
+#### Currently implemented
 * Neo4j
 
 #### 🚧 Coming soon
 
 * Elasticsearch
+* Meilisearch
 * MongoDB
 * Qdrant
 * Weviate
@@ -16,9 +18,14 @@ Example code for the following databases are provided, along with a FastAPI depl
 
 ## Goals
 
-The primary aim is to compare the data ingestion and query performance of various databases (mostly NoSQL) that can be used for a host of downstream use cases. In particular, many NoSQL databases can form the backend of upcoming automated systems that provide ChatGPT and other LLMs contextual querying via natural language and short/long-term memory. As such, it's useful to have a clean, efficient and reproducible workflow to experiment with each database in question.
+The primary aim is to compare the data ingestion and query performance of various databases that can be used for a host of downstream use cases. Two use cases are of particular interest:
 
-Vector DBs are particularly interesting as the backbone of contextual search applications, more on them soon!
+1. We may want to expose (potentially sensitive) data to downstream client applications, so building an API on top of the database can be a very useful tool to share the data in a controlled manner
+
+2. Databases or data stores in general can be important "sources of truth" for contextual querying via LLMs like ChatGPT, allowing us to ground our model's results with factual data. APIs allow us to add another layer to simplify querying a host of backends in a way that doesn't rely on the LLM learning a specific query language.
+
+In general, it's useful to have a clean, efficient and reproducible workflow to experiment with each database in question.
+
 
 ## Pre-requisites
 

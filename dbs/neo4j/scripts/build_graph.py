@@ -84,7 +84,7 @@ async def create_indexes_and_constraints(session: AsyncSession) -> None:
         # indexes
         "CREATE INDEX provinceName IF NOT EXISTS FOR (p:Province) ON (p.provinceName) ",
         "CREATE INDEX tasterName IF NOT EXISTS FOR (p:Person) ON (p.tasterName) ",
-        "CREATE FULLTEXT INDEX titlesAndDescriptions IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description] ",
+        "CREATE FULLTEXT INDEX searchText IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description, w.variety] ",
     ]
     for query in queries:
         await session.run(query)
@@ -113,7 +113,7 @@ async def wine_country_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) -
         UNWIND d.location as loc
         WITH wine, loc
             WHERE loc.country IS NOT NULL
-            MERGE (country:Country:Location {countryName: loc.country})
+            MERGE (country:Country {countryName: loc.country})
             MERGE (wine)-[:IS_FROM_COUNTRY]->(country)
     """
     await tx.run(query, data=data)
@@ -126,7 +126,7 @@ async def wine_province_rels(tx: AsyncManagedTransaction, data: list[JsonBlob]) 
         UNWIND d.location as loc
         WITH wine, loc
             WHERE loc.province IS NOT NULL
-            MERGE (province:Province:Location {provinceName: loc.province})
+            MERGE (province:Province {provinceName: loc.province})
             MERGE (wine)-[:IS_FROM_PROVINCE]->(province)
     """
     await tx.run(query, data=data)
@@ -224,4 +224,7 @@ if __name__ == "__main__":
     if LIMIT > 0:
         files = files[:LIMIT]
     # Run async graph loader
+    import uvloop
+
+    uvloop.install()
     asyncio.run(main(files))
