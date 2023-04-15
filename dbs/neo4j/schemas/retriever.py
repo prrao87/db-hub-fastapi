@@ -30,6 +30,7 @@ class TopWinesByCountry(BaseModel):
     wineID: int
     country: str
     title: str
+    description: str | None
     points: int
     price: float | str
     variety: str | None
@@ -41,6 +42,7 @@ class TopWinesByProvince(BaseModel):
     country: str
     province: str
     title: str
+    description: str | None
     points: int
     price: float | str
     variety: str | None
