@@ -42,8 +42,6 @@ The services can be stopped at any time for maintenance and updates.
 docker compose down
 ```
 
-Note that there is also a `Dockerfile` in this location. This file downloads a base image that sets up FastAPI via `gunicorn`. In this case, `gunicorn` works as a process manager that allows multiple `uvicorn` workers to handle incoming requests and make the most of a multiple-core CPU. See [the FastAPI docs om deployment concepts](https://fastapi.tiangolo.com/deployment/server-workers/) for more details on how these tools talk to each other.
-
 **Note:** The setup shown here would not be ideal in production, as there are other details related to security and scalability that are not addressed via simple docker, but, this is a good starting point to begin experimenting!
 
 
@@ -78,10 +76,10 @@ Once the data has been successfully loaded into Neo4j and the containers are up 
 
 ```sh
 curl -X 'GET' \
-  'http://localhost:8000/wine/search?search_string=tuscany%20red'
+  'http://localhost:8000/wine/search?terms=tuscany%20red'
 ```
 
-This cURL request passes a search string "**tuscany red**" to the `/wine/search/` endpoint, which is then parsed into a working Cypher query by the FastAPI backend. The query runs and retrieves results from a full text search index (that looks for these keywords in the wine's title and description), and, if the setup was done correctly, we should see the following response:
+This cURL request passes the search terms "**tuscany red**" to the `/wine/search/` endpoint, which is then parsed into a working Cypher query by the FastAPI backend. The query runs and retrieves results from a full text search index (that looks for these keywords in the wine's title and description), and, if the setup was done correctly, we should see the following response:
 
 ```json
 [
@@ -115,7 +113,7 @@ This cURL request passes a search string "**tuscany red**" to the `/wine/search/
 ]
 ```
 
-Not bad, this example returns some fairly highly rated Tuscan red wines along with their price and country of origin!
+Not bad! This example correctly returns some highly rated Tuscan red wines along with their price and country of origin (obviously, Italy in this case).
 
 ### Step 4: Extend the API
 
