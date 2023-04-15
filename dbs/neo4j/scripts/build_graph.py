@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic.main import ModelMetaclass
-
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
+from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from schemas.wine import Wine
@@ -126,9 +125,7 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
 
 
 async def main(files: list[str]) -> None:
-    async with AsyncGraphDatabase.driver(
-        URI, auth=(NEO4J_USER, NEO4J_PASSWORD)
-    ) as driver:
+    async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)

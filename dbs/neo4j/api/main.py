@@ -2,7 +2,6 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
-
 from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
 
