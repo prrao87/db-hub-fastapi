@@ -1,0 +1,106 @@
+{
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "custom_analyzer": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "properties": {
+            "id": {
+                "type": "keyword"
+            },
+            "points": {
+                "type": "unsigned_long"
+            },
+            "title": {
+                "type": "text",
+                "analyzer": "custom_analyzer"
+            },
+            "description": {
+                "type": "text",
+                "analyzer": "custom_analyzer"
+            },
+            "price": {
+                "type": "half_float"
+            },
+            "variety": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "winery": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "vineyard": {
+                "type": "text",
+                "analyzer": "custom_analyzer"
+            },
+            "country": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "province": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "region_1": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "region_2": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "taster_name": {
+                "type": "text",
+                "analyzer": "custom_analyzer",
+                "fields": {
+                    "raw": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "taster_twitter_handle": {
+                "type": "keyword"
+            }
+        }
+    }
+}
