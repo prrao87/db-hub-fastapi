@@ -3,14 +3,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
-from dotenv import load_dotenv
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 
 from api.config import Settings
 from api.routers.wine import wine_router
-
-load_dotenv()
 
 
 @lru_cache()
@@ -50,7 +47,7 @@ app = FastAPI(
     description=(
         "Query from an Elasticsearch database of 130k wine reviews from the Wine Enthusiast magazine"
     ),
-    version="0.1.0",
+    version=get_settings().tag,
     lifespan=lifespan,
 )
 
@@ -64,9 +61,3 @@ async def root():
 
 # Attach routes
 app.include_router(wine_router, prefix="/wine", tags=["wine"])
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
