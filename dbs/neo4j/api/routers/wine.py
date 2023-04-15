@@ -124,11 +124,13 @@ async def _search_by_keywords(
             coalesce(wine.price, "Not available") AS price,
             wine.variety AS variety,
             wine.winery AS winery
-        ORDER BY points DESC, score DESC LIMIT 5
+        ORDER BY score DESC, points DESC LIMIT 5
     """
     response = await tx.run(query, terms=terms, price=price)
     result = await response.data()
-    return result
+    if result:
+        return [FullTextSearch(**r) for r in result]
+    return None
 
 
 async def _top_by_country(
@@ -151,7 +153,9 @@ async def _top_by_country(
     """
     response = await tx.run(query, country=country)
     result = await response.data()
-    return result
+    if result:
+        return [TopWinesByCountry(**r) for r in result]
+    return None
 
 
 async def _top_by_province(
@@ -175,7 +179,9 @@ async def _top_by_province(
     """
     response = await tx.run(query, province=province)
     result = await response.data()
-    return result
+    if result:
+        return [TopWinesByProvince(**r) for r in result]
+    return None
 
 
 async def _most_by_variety(
@@ -195,4 +201,6 @@ async def _most_by_variety(
     """
     response = await tx.run(query, variety=variety, points=points)
     result = await response.data()
-    return result
+    if result:
+        return [MostWinesByVariety(**r) for r in result]
+    return None

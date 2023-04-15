@@ -76,7 +76,7 @@ Once the data has been successfully loaded into Neo4j and the containers are up 
 
 ```sh
 curl -X 'GET' \
-  'http://localhost:8000/wine/search?terms=tuscany%20red'
+  'http://localhost:8000/wine/search?terms=tuscany%20red&max_price=50'
 ```
 
 This cURL request passes the search terms "**tuscany red**" to the `/wine/search/` endpoint, which is then parsed into a working Cypher query by the FastAPI backend. The query runs and retrieves results from a full text search index (that looks for these keywords in the wine's title and description), and, if the setup was done correctly, we should see the following response:
@@ -84,31 +84,34 @@ This cURL request passes the search terms "**tuscany red**" to the `/wine/search
 ```json
 [
     {
-        "wineID": 22170,
-        "country": "Italy",
-        "title": "Kirkland Signature 2004 Tuscany Red (Toscana)",
-        "points": 87,
-        "price": 20.0,
-        "variety": "Red Blend",
-        "winery": "Kirkland Signature"
-    },
-    {
         "wineID": 66393,
         "country": "Italy",
         "title": "Capezzana 1999 Ghiaie Della Furba Red (Tuscany)",
+        "description": "Very much a baby, this is one big, bold, burly Cab-Merlot-Syrah blend that's filled to the brim with extracted plum fruit, bitter chocolate and earth. It takes a long time in the glass for it to lose its youthful, funky aromatics, and on the palate things are still a bit scattered. But in due time things will settle and integrate",
         "points": 90,
-        "price": 49.0,
+        "price": 49,
         "variety": "Red Blend",
         "winery": "Capezzana"
     },
     {
-        "wineID": 35880,
+        "wineID": 40960,
         "country": "Italy",
-        "title": "Torrenera 2006 Red (Toscana)",
-        "points": 87,
-        "price": "Not available",
+        "title": "Fattoria di Grignano 2011 Pietramaggio Red (Toscana)",
+        "description": "Here's a simple but well made red from Tuscany that has floral aromas of violet and rose with berry notes. The palate offers bright cherry, red currant and a touch of spice. Pair this with pasta dishes or grilled vegetables.",
+        "points": 86,
+        "price": 11,
         "variety": "Red Blend",
-        "winery": "Torrenera"
+        "winery": "Fattoria di Grignano"
+    },
+    {
+        "wineID": 73595,
+        "country": "Italy",
+        "title": "I Giusti e Zanza 2011 Belcore Red (Toscana)",
+        "description": "With aromas of violet, tilled soil and red berries, this blend of Sangiovese and Merlot recalls sunny Tuscany. It's loaded with wild cherry flavors accented by white pepper, cinnamon and vanilla. The palate is uplifted by vibrant acidity and fine tannins.",
+        "points": 89,
+        "price": 27,
+        "variety": "Red Blend",
+        "winery": "I Giusti e Zanza"
     }
 ]
 ```

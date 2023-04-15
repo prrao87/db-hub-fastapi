@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic.main import ModelMetaclass
-
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
+from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from schemas.wine import Wine
