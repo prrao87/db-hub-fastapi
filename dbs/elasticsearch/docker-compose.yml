@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+      - eslogs:/usr/share/elasticsearch/logs
+    ports:
+      - ${ELASTIC_PORT}:9200
+    networks:
+      - wine
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    volumes:
+      - kibanadata:/usr/share/kibana/data
+    ports:
+      - ${KIBANA_PORT}:5601
+    networks:
+      - wine
+    depends_on:
+      - elasticsearch
+  
+  fastapi:
+    image: elastic_wine_fastapi:${TAG}
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./:/wine
+    networks:
+      - wine
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  esdata:
+  eslogs:
+  kibanadata:
+
+networks:
+  wine:
+    driver: bridge
