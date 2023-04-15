@@ -6,14 +6,12 @@ Example code is provided for numerous databases, along with FastAPI docker deplo
 
 #### Currently implemented
 * Neo4j
+* Elasticsearch
 
 #### 🚧 Coming soon
-
-* Elasticsearch
 * Meilisearch
-* MongoDB
 * Qdrant
-* Weviate
+* Redis VSS
 
 
 ## Goals
@@ -30,3 +28,7 @@ In general, it's useful to have a clean, efficient and reproducible workflow to 
 ## Pre-requisites
 
 Install Docker and the latest version of Python (3.11+), as recent syntactic improvements in Python are extensively utilized in the code provided.
+
+## About the dataset
+
+The [dataset provided](https://github.com/prrao87/async-db-fastapi/tree/main/data) in this repo is a formatted version of the version obtained from Kaggle datasets. Full credit is due to [the original author](https://www.kaggle.com/zynicide) via Kaggle for curating this dataset.
