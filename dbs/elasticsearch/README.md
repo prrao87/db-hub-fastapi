@@ -139,5 +139,10 @@ GET
 Top By Province
 ```
 
+#### To do:
+
+- [ ] Add aggregation query in Elasticsearch to calculate the number of top-rated wines of a particular variety, grouped by country
+
+
 Run the FastAPI app in a docker container to explore them!
 
