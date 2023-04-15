@@ -76,7 +76,7 @@ Once the data has been successfully loaded into Neo4j and the containers are up 
 
 ```sh
 curl -X 'GET' \
-  'http://localhost:8000/wine/search?terms=tuscany%20red'
+  'http://localhost:8000/wine/search?terms=tuscany%20red&max_price=50'
 ```
 
 This cURL request passes the search terms "**tuscany red**" to the `/wine/search/` endpoint, which is then parsed into a working Cypher query by the FastAPI backend. The query runs and retrieves results from a full text search index (that looks for these keywords in the wine's title and description), and, if the setup was done correctly, we should see the following response:
