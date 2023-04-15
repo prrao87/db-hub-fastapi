@@ -108,24 +108,22 @@ async def _search_by_keywords(
     response = await client.search(
         index="wines",
         size=5,
-        body={
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "multi_match": {
-                                "query": terms,
-                                "fields": ["title", "description", "variety"],
-                                "minimum_should_match": 2,
-                                "fuzziness": "AUTO",
-                            }
+        query={
+            "bool": {
+                "must": [
+                    {
+                        "multi_match": {
+                            "query": terms,
+                            "fields": ["title", "description", "variety"],
+                            "minimum_should_match": 2,
+                            "fuzziness": "AUTO",
                         }
-                    ],
-                    "filter": {"range": {"price": {"lte": max_price}}},
-                }
-            },
-            "sort": [{"points": {"order": "desc"}}],
+                    }
+                ],
+                "filter": {"range": {"price": {"lte": max_price}}},
+            }
         },
+        sort={"points": {"order": "desc"}},
     )
     result = response["hits"].get("hits")
     if result:
@@ -143,20 +141,18 @@ async def _top_by_country(
     response = await client.search(
         index="wines",
         size=5,
-        body={
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match_phrase": {
-                                "country": country,
-                            }
+        query={
+            "bool": {
+                "must": [
+                    {
+                        "match_phrase": {
+                            "country": country,
                         }
-                    ]
-                }
-            },
-            "sort": [{"points": {"order": "desc"}}],
+                    }
+                ]
+            }
         },
+        sort={"points": {"order": "desc"}},
     )
     result = response["hits"].get("hits")
     if result:
@@ -174,20 +170,18 @@ async def _top_by_province(
     response = await client.search(
         index="wines",
         size=5,
-        body={
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match_phrase": {
-                                "province": province,
-                            }
+        query={
+            "bool": {
+                "must": [
+                    {
+                        "match_phrase": {
+                            "province": province,
                         }
-                    ]
-                }
-            },
-            "sort": [{"points": {"order": "desc"}}],
+                    }
+                ]
+            }
         },
+        sort={"points": {"order": "desc"}},
     )
     result = response["hits"].get("hits")
     if result:
