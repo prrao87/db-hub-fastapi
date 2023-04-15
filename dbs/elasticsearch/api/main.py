@@ -1,11 +1,11 @@
+import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from functools import lru_cache
-import warnings
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
 from elasticsearch import AsyncElasticsearch
+from fastapi import FastAPI
 
 from api.config import Settings
 from api.routers.wine import wine_router

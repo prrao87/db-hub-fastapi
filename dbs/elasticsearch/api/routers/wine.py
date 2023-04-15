@@ -1,11 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, Request
 from elasticsearch import AsyncElasticsearch
-
+from fastapi import APIRouter, HTTPException, Query, Request
 from schemas.retriever import (
     FullTextSearch,
     TopWinesByCountry,
     TopWinesByProvince,
-    # MostWinesByVariety,
 )
 
 wine_router = APIRouter()
