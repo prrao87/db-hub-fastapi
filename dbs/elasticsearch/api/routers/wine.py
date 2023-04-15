@@ -22,7 +22,7 @@ async def search_by_keywords(
     terms: str = Query(
         description="Search wine by keywords in title, description and variety"
     ),
-    max_price: float = Query(
+    max_price: int = Query(
         default=10000.0, description="Specify the maximum price for the wine (e.g., 30)"
     ),
 ) -> list[FullTextSearch] | None:
