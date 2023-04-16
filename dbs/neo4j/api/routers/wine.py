@@ -25,7 +25,7 @@ async def search_by_keywords(
         default=10000.0, description="Specify the maximum price for the wine (e.g., 30)"
     ),
 ) -> list[FullTextSearch] | None:
-    session = request.app.state.db_session
+    session = request.app.session
     result = await session.execute_read(_search_by_keywords, terms, max_price)
     if not result:
         raise HTTPException(
@@ -46,7 +46,7 @@ async def top_by_country(
         description="Get top-rated wines by country name specified (must be exact name)"
     ),
 ) -> list[TopWinesByCountry] | None:
-    session = request.app.state.db_session
+    session = request.app.session
     result = await session.execute_read(_top_by_country, country)
     if not result:
         raise HTTPException(
@@ -67,7 +67,7 @@ async def top_by_province(
         description="Get top-rated wines by province name specified (must be exact name)"
     ),
 ) -> list[TopWinesByProvince] | None:
-    session = request.app.state.db_session
+    session = request.app.session
     result = await session.execute_read(_top_by_province, province)
     if not result:
         raise HTTPException(
@@ -92,7 +92,7 @@ async def most_by_variety(
         description="Specify the minimum points-rating for the wine (e.g., 85)",
     ),
 ) -> list[MostWinesByVariety] | None:
-    session = request.app.state.db_session
+    session = request.app.session
     result = await session.execute_read(_most_by_variety, variety, points)
     if not result:
         raise HTTPException(
