@@ -23,8 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     URI = f"bolt://{service}:7687"
     AUTH = ("neo4j", settings.neo4j_password)
     async with AsyncGraphDatabase.driver(URI, auth=AUTH) as driver:
-        async with driver.session(database="neo4j") as db_session:
-            app.state.db_session = db_session
+        async with driver.session(database="neo4j") as session:
+            app.session = session
             print("Successfully connected to wine reviews Neo4j DB")
             yield
     print("Successfully closed wine reviews Neo4j connection")
