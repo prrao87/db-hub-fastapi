@@ -7,11 +7,12 @@ Example code is provided for numerous databases, along with FastAPI docker deplo
 #### Currently implemented
 * Neo4j
 * Elasticsearch
+* Meilisearch
 
 #### 🚧 Coming soon
-* Meilisearch
+
 * Qdrant
-* Redis VSS
+* Weviate
 
 
 ## Goals
