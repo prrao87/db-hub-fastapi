@@ -133,3 +133,4 @@ dmypy.json
 
 # data
 *.jsonl
+*/*/meili_data

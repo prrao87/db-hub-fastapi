@@ -1,0 +1,41 @@
+version: "3"
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:${MEILI_VERSION}
+    restart: unless-stopped
+    environment:
+      - http_proxy
+      - https_proxy
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_ENV=development
+    ports:
+      - ${MEILI_PORT:-7700}:7700
+    volumes:
+      - ./meili_data:/meili_data
+    networks:
+      - wine
+  
+  fastapi:
+    image: meili_wine_fastapi:${TAG}
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 8003:8003
+    depends_on:
+      - meilisearch
+    volumes:
+      - ./:/wine
+    networks:
+      - wine
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8003 --reload
+
+volumes:
+  meili_data:
+
+networks:
+  wine:
+    driver: bridge
