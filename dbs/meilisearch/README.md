@@ -153,4 +153,4 @@ As stated in that blog post by Meilisearch :
 
 > Meilisearch is not made to search through billions of large text files or parse complex queries. This kind of searching power would require a higher degree of complexity and lead to slower search experiences, which runs against our instant search philosophy. For those purposes, look no further than Elasticsearch; it’s an excellent solution for companies with the necessary resources, whether that be the financial means to hire consultants or the time and money required to implement it themselves.
 
-**Bottom Line:** If your goal is to run analytics and slightly more complex queries than search on your data via NoSQL, then, maybe Meilisearch isn't the best choice -- stick to more established alternatives like MongoDB or ElasticSearch that were designed for much more versatile use cases.
+**Bottom Line:** If your goal is to run analytics on your unstructured data, or more complex queries than string-based information retrieval, then, maybe Meilisearch isn't the best choice -- stick to more established alternatives like MongoDB or ElasticSearch that were designed for much more versatile use cases.
