@@ -86,7 +86,7 @@ async def _search_by_keywords(
         terms,
         limit=5,
         filter=f"price < {max_price}",
-        sort=["points:desc" , "price:asc"],
+        sort=["points:desc", "price:asc"],
     )
     if response:
         return response.hits
@@ -101,7 +101,7 @@ async def _top_by_country(
         "",
         limit=5,
         filter=f'country = "{country}"',
-        sort=["points:desc" , "price:asc"],
+        sort=["points:desc", "price:asc"],
     )
     if response:
         return response.hits
@@ -116,7 +116,7 @@ async def _top_by_province(
         "terms",
         limit=5,
         filter=f'province = "{province}"',
-        sort=["points:desc" , "price:asc"],
+        sort=["points:desc", "price:asc"],
     )
     if response:
         return response.hits
