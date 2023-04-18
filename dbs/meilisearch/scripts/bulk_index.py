@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import glob
@@ -11,6 +13,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from meilisearch_python_async import Client
+from meilisearch_python_async.index import Index
 from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
@@ -142,24 +145,33 @@ async def _update_sortable_attributes(
     await index.update_sortable_attributes(fields)
 
 
+async def do_indexing(index: Index, data: list[JsonBlob], file_name: str) -> None:
+    await index.update_documents(data, "id")
+    print(f"Indexed {Path(file_name).name} to db")
+
+
 async def main(files: list[str]) -> None:
     settings = Settings()
     URI = f"http://{settings.meili_url}:{settings.meili_port}"
     MASTER_KEY = settings.meili_master_key
     async with Client(URI, MASTER_KEY) as client:
+        await asyncio.gather(
+            _update_searchable_attributes(client, "wines"),
+            _update_filterable_attributes(client, "wines"),
+            _update_sortable_attributes(client, "wines"),
+        )
         index = client.index("wines")
+        tasks = []
+        print("Processing files")
         for file in files:
             data = read_jsonl_from_file(file)
             data = validate(data, Wine, exclude_none=True)
-            try:
-                # Set id as primary key prior to indexing
-                await index.update_documents(data, "id")
-                print(f"Indexed {Path(file).name} to db")
-            except Exception as e:
-                print(f"{e}: Failed to index {Path(file).name} to db")
-        await _update_searchable_attributes(client, "wines")
-        await _update_filterable_attributes(client, "wines")
-        await _update_sortable_attributes(client, "wines")
+            tasks.append(do_indexing(index, data, file))
+        try:
+            # Set id as primary key prior to indexing
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            print(f"{e}: Error while indexing to db")
     print(f"Finished indexing {len(files)} JSONL files to db")
 
 
