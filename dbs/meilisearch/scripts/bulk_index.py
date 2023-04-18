@@ -148,7 +148,7 @@ async def main(files: list[str]) -> None:
         await asyncio.gather(
             _update_searchable_attributes(client, "wines"),
             _update_filterable_attributes(client, "wines"),
-            _update_sortable_attributes(client, "wines")
+            _update_sortable_attributes(client, "wines"),
         )
         index = client.index("wines")
         tasks = []
