@@ -35,13 +35,23 @@ def get_settings():
     return Settings()
 
 
-def get_json_files(file_prefix: str, file_path: Path) -> list[str]:
+def get_json_files(file_prefix: str, file_path: Path, data_dir: Path) -> list[str]:
     """Get all line-delimited json files (.jsonl) from a directory with a given prefix"""
     files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
+
+    # Files may not have been unzipped yet so try to do that first
     if not files:
-        raise FileNotFoundError(
-            f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
-        )
+        extract_json_from_zip(data_dir, file_path)
+
+        # No try to get the files again after unzipping
+        files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
+
+        # This time if they aren't there they really don't exist
+        if not files:
+            raise FileNotFoundError(
+                f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
+            )
+
     return files
 
 
@@ -188,7 +198,8 @@ if __name__ == "__main__":
         # Extract all json files from zip files from their parent directory and save them in `parent_dir/data`.
         extract_json_from_zip(DATA_DIR, FILE_PATH)
 
-    files = get_json_files("winemag-data", FILE_PATH)
+    files = get_json_files("winemag-data", FILE_PATH, DATA_DIR)
+
     assert files, f"No files found in {FILE_PATH}"
 
     if LIMIT > 0:
