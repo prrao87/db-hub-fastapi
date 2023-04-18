@@ -2,7 +2,7 @@
 
 [Meilisearch](https://www.meilisearch.com/docs/learn/what_is_meilisearch/overview) is a fast, responsive RESTful search engine database [built in Rust](https://github.com/meilisearch/meilisearch). The primary use case for Meilisearch is to answer business questions that involve typo-tolerant and near-instant searching on keywords or phrases, all enabled by its efficient indexing and storage techniques.
 
-Code is provided for ingesting the wine reviews dataset into Meilisearch in an async fashion. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI.
+Code is provided for ingesting the wine reviews dataset into Meilisearch in an async fashion [via this excellent client](https://github.com/sanders41/meilisearch-python-async). In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI.
 
 * All code (wherever possible) is async
 * [Pydantic](https://docs.pydantic.dev) is used for schema validation, both prior to data ingestion and during API request handling

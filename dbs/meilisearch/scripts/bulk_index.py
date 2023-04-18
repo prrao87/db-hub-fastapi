@@ -167,6 +167,7 @@ async def main(files: list[str]) -> None:
             data = read_jsonl_from_file(file)
             data = validate(data, Wine, exclude_none=True)
             tasks.append(do_indexing(index, data, file))
+            print(f"Validated data from {Path(file).name} in pydantic")
         try:
             # Set id as primary key prior to indexing
             await asyncio.gather(*tasks)
