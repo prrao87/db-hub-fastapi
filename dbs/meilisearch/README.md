@@ -16,10 +16,12 @@ Note that this code base has been tested in Python 3.11, and requires a minimum 
 ```sh
 # Setup the environment for the first time
 python -m venv meili_venv  # python -> python 3.10+
-python -m pip install -r requirements.txt
 
 # Activate the environment (for subsequent runs)
 source meili_venv/bin/activate
+
+python -m pip install -r requirements.txt
+
 ```
 
 --- 
