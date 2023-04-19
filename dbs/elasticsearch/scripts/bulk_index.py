@@ -108,9 +108,7 @@ async def create_index(mappings_path: Path, client: AsyncElasticsearch) -> None:
         settings = config.get("settings")
         index_name = f"{INDEX_ALIAS}-1"
         try:
-            await client.indices.create(
-                index=index_name, mappings=mappings, settings=settings
-            )
+            await client.indices.create(index=index_name, mappings=mappings, settings=settings)
             await client.indices.put_alias(index=index_name, name=INDEX_ALIAS)
             # Verify that the new index has been created
             assert await client.indices.exists(index=index_name)
@@ -149,9 +147,7 @@ async def main(files: list[str]) -> None:
             data = read_jsonl_from_file(file)
             validated_data = validate(data, Wine)
             try:
-                await bulk_index_wines_to_elastic(
-                    elastic_client, INDEX_ALIAS, validated_data
-                )
+                await bulk_index_wines_to_elastic(elastic_client, INDEX_ALIAS, validated_data)
                 print(f"Indexed {Path(file).name} to db")
             except Exception as e:
                 print(f"{e}: Failed to index {Path(file).name} to db")
@@ -161,9 +157,7 @@ async def main(files: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "Bulk index database from the wine reviews JSONL data"
-    )
+    parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument(
         "--limit",
         type=int,

@@ -4,10 +4,11 @@ import argparse
 import asyncio
 import glob
 import json
-from functools import lru_cache
 import os
 import sys
 import zipfile
+from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import Any
 
@@ -41,20 +42,16 @@ def get_settings():
 def get_json_files(file_prefix: str, file_path: Path, data_dir: Path) -> list[str]:
     """Get all line-delimited json files (.jsonl) from a directory with a given prefix"""
     files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
-
     # Files may not have been unzipped yet so try to do that first
     if not files:
         extract_json_from_zip(data_dir, file_path)
-
-        # No try to get the files again after unzipping
+        # Now try to get the files again after unzipping
         files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
-
         # This time if they aren't there they really don't exist
         if not files:
             raise FileNotFoundError(
                 f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
             )
-
     return files
 
 
@@ -92,6 +89,12 @@ def validate(
 ) -> list[JsonBlob]:
     validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
     return validated_data
+
+
+def process_file(file_name: str) -> tuple[str, list[JsonBlob]]:
+    data = read_jsonl_from_file(file_name)
+    validated_data = validate(data, Wine, exclude_none=True)
+    return validated_data, file_name
 
 
 # --- Async functions ---
@@ -145,8 +148,10 @@ async def _update_sortable_attributes(
     await index.update_sortable_attributes(fields)
 
 
-async def do_indexing(index: Index, data: list[JsonBlob], file_name: str) -> None:
-    await index.update_documents(data, "id")
+async def update_documents_to_index(
+    index: Index, primary_key: str, data: list[JsonBlob], file_name: str
+) -> None:
+    await index.update_documents(data, primary_key)
     print(f"Indexed {Path(file_name).name} to db")
 
 
@@ -161,15 +166,20 @@ async def main(files: list[str]) -> None:
             _update_sortable_attributes(client, "wines"),
         )
         index = client.index("wines")
-        tasks = []
+        primary_key = "id"
         print("Processing files")
-        for file in files:
-            data = read_jsonl_from_file(file)
-            data = validate(data, Wine, exclude_none=True)
-            tasks.append(do_indexing(index, data, file))
-            print(f"Validated data from {Path(file).name} in pydantic")
+        with ProcessPoolExecutor() as process_pool:
+            # Attach process pool to running event loop so that we can process multiple files in parallel
+            loop = asyncio.get_running_loop()
+            calls = [partial(process_file, file_name) for file_name in files]
+            call_coroutines = [loop.run_in_executor(process_pool, call) for call in calls]
+            # Gather and run document update coroutines
+            coroutines = await asyncio.gather(*call_coroutines)
+            tasks = [
+                update_documents_to_index(index, primary_key, data, filename)
+                for data, filename in coroutines
+            ]
         try:
-            # Set id as primary key prior to indexing
             await asyncio.gather(*tasks)
         except Exception as e:
             print(f"{e}: Error while indexing to db")
@@ -177,9 +187,7 @@ async def main(files: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "Bulk index database from the wine reviews JSONL data"
-    )
+    parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument(
         "--limit",
         type=int,

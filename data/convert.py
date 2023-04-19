@@ -13,9 +13,7 @@ def read_data(filename: str) -> list[JsonBlob]:
     return data
 
 
-def chunk_iterable(
-    item_list: list[JsonBlob], chunksize: int
-) -> Iterator[tuple[JsonBlob, ...]]:
+def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
     """
     Break a large iterable into an iterable of smaller iterables of size `chunksize`
     """
@@ -23,9 +21,7 @@ def chunk_iterable(
         yield tuple(item_list[i : i + chunksize])
 
 
-def write_chunked_data(
-    item_list: list[JsonBlob], output_name: str, chunksize: int = 5000
-) -> None:
+def write_chunked_data(item_list: list[JsonBlob], output_name: str, chunksize: int = 5000) -> None:
     """
     Write data to a zip file in chunks so that we don't dump all data into a single huge JSON file
     """
