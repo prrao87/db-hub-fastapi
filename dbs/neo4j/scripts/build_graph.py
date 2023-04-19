@@ -125,9 +125,7 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
 
 
 async def main(files: list[str]) -> None:
-    async with AsyncGraphDatabase.driver(
-        URI, auth=(NEO4J_USER, NEO4J_PASSWORD)
-    ) as driver:
+    async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)

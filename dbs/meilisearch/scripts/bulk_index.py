@@ -187,9 +187,7 @@ async def main(files: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "Bulk index database from the wine reviews JSONL data"
-    )
+    parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument(
         "--limit",
         type=int,
