@@ -4,7 +4,8 @@ import argparse
 import asyncio
 import glob
 import json
-from functools import lru_cache
+from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache, partial
 import os
 import sys
 import zipfile
@@ -150,6 +151,11 @@ async def do_indexing(index: Index, data: list[JsonBlob], file_name: str) -> Non
     print(f"Indexed {Path(file_name).name} to db")
 
 
+def process_file(file_name: str) -> tuple[str, list[JsonBlob]]:
+    data = read_jsonl_from_file(file_name)
+    return file_name, validate(data, Wine, exclude_none=True)
+
+
 async def main(files: list[str]) -> None:
     settings = Settings()
     URI = f"http://{settings.meili_url}:{settings.meili_port}"
@@ -161,13 +167,17 @@ async def main(files: list[str]) -> None:
             _update_sortable_attributes(client, "wines"),
         )
         index = client.index("wines")
-        tasks = []
         print("Processing files")
-        for file in files:
-            data = read_jsonl_from_file(file)
-            data = validate(data, Wine, exclude_none=True)
-            tasks.append(do_indexing(index, data, file))
-            print(f"Validated data from {Path(file).name} in pydantic")
+        with ProcessPoolExecutor() as process_pool:
+            loop = asyncio.get_running_loop()
+            calls = [partial(process_file, file_name) for file_name in files]
+            call_coroutines = []
+
+            for call in calls:
+                call_coroutines.append(loop.run_in_executor(process_pool, call))
+
+            data = await asyncio.gather(*call_coroutines)
+            tasks = [do_indexing(index, d[1], d[0]) for d in data]
         try:
             # Set id as primary key prior to indexing
             await asyncio.gather(*tasks)
