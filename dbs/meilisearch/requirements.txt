@@ -1,4 +1,4 @@
-meilisearch-python-async>=1.2.0
+meilisearch-python-async==1.2.0
 pydantic>=1.10.7, <2.0.0
 fastapi>=0.95.0, <1.0.0
 httpx>=0.24.0
