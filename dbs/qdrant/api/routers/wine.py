@@ -18,9 +18,7 @@ wine_router = APIRouter()
 )
 def search_by_keywords(
     request: Request,
-    terms: str = Query(
-        description="Search wine by keywords in title, description and variety"
-    ),
+    terms: str = Query(description="Search wine by keywords in title, description and variety"),
     max_price: float = Query(
         default=10000.0, description="Specify the maximum price for the wine (e.g., 30)"
     ),
@@ -39,32 +37,30 @@ def search_by_keywords(
 
 # --- Helper functions ---
 
+
 def _search_by_keywords(
-        client: QdrantClient,
-        model: SentenceTransformer,
-        collection: str,
-        terms: str,
-        max_price: float
-    ) -> list[SimilaritySearch] | None:
+    client: QdrantClient, model: SentenceTransformer, collection: str, terms: str, max_price: float
+) -> list[SimilaritySearch] | None:
     """Convert input text query into a vector for lookup in the db"""
     vector = model.encode(terms).tolist()
 
     # Define a range filter for wine price
-    filter = models.Filter(**{
-        "must": [{
-            "key": "price",
-            "range": {
-                "lte": max_price,
-            }
-        }]
-    })
+    filter = models.Filter(
+        **{
+            "must": [
+                {
+                    "key": "price",
+                    "range": {
+                        "lte": max_price,
+                    },
+                }
+            ]
+        }
+    )
 
     # Use `vector` for similarity search on the closest vectors in the collection
     search_result = client.search(
-        collection_name=collection,
-        query_vector=vector,
-        query_filter=filter,
-        top=5
+        collection_name=collection, query_vector=vector, query_filter=filter, top=5
     )
     # `search_result` contains found vector ids with similarity scores along with the stored payload
     # For now we are interested in payload only

@@ -9,6 +9,7 @@ from qdrant_client import QdrantClient
 from api.config import Settings
 from api.routers.wine import wine_router
 
+
 @lru_cache()
 def get_settings():
     # Use lru_cache to avoid loading .env file for every request

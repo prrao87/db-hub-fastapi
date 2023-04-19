@@ -15,6 +15,7 @@ from pydantic.main import ModelMetaclass
 from tqdm import tqdm
 
 import torch
+
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
 from schemas.wine import Wine
@@ -98,7 +99,7 @@ def create_payload_index_on_text_field(
         collection_name=collection_name,
         field_name=field_name,
         field_schema=field_schema,
-)
+    )
 
 
 def main(files: list[str]) -> None:
@@ -116,7 +117,7 @@ def main(files: list[str]) -> None:
     # # Initialize sentence embedding pipeline
     model_checkpoint = os.environ.get("EMBEDDING_MODEL_CHECKPOINT", "multi-qa-MiniLM-L6-cos-v1")
     # pipeline = SentenceEmbeddingPipeline(model_checkpoint)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = SentenceTransformer(model_checkpoint, device=device)
 
     for file in tqdm(files):
@@ -132,7 +133,7 @@ def main(files: list[str]) -> None:
                 ids=ids,
                 payloads=data,
                 vectors=sentence_embeddings,
-            )
+            ),
         )
         print(f"Indexed {Path(file).name} to db")
     print(f"Finished indexing {len(files)} JSONL files to db")
