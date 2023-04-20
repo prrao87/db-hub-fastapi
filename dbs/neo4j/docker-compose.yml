@@ -30,7 +30,7 @@ services:
     env_file:
       - .env
     ports:
-      - 8000:8000
+      - ${API_PORT}:8000
     depends_on:
       - db
     volumes:
