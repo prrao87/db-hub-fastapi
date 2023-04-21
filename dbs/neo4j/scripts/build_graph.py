@@ -106,7 +106,7 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
     await tx.run(query, data=data)
 
 
-async def main(files: list[str]) -> None:
+async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
