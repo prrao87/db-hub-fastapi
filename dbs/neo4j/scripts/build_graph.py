@@ -24,6 +24,7 @@ class FileNotFoundError(Exception):
 
 # --- Blocking functions ---
 
+
 def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
     """
     Break a large iterable into an iterable of smaller iterables of size `chunksize`
