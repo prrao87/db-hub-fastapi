@@ -134,7 +134,7 @@ async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
             ids = [item["id"] for item in validated_data]
             try:
                 await bulk_index_wines_to_elastic(elastic_client, INDEX_ALIAS, validated_data)
-                print(f"Indexed {counter} items in the ID range {min(ids)}-{max(ids)} to db")
+                print(f"Indexed {counter} items")
             except Exception as e:
                 print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
         # Close AsyncElasticsearch client
@@ -163,4 +163,4 @@ if __name__ == "__main__":
 
     # Run main async event loop
     asyncio.run(main(chunked_data))
-    print("Finished execution")
+    print("Finished execution!")
