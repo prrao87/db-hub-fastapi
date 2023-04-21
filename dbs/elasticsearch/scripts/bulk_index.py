@@ -1,14 +1,13 @@
 import argparse
 import asyncio
-import glob
 import json
 import os
 import sys
 import warnings
-import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
+import srsly
 from dotenv import load_dotenv
 from elasticsearch import AsyncElasticsearch, helpers
 from pydantic.main import ModelMetaclass
@@ -28,45 +27,30 @@ class FileNotFoundError(Exception):
 # --- Blocking functions ---
 
 
-def get_json_files(file_prefix: str, file_path: Path) -> list[str]:
+def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
+    """
+    Break a large iterable into an iterable of smaller iterables of size `chunksize`
+    """
+    for i in range(0, len(item_list), chunksize):
+        yield tuple(item_list[i : i + chunksize])
+
+
+def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
     """Get all line-delimited json files (.jsonl) from a directory with a given prefix"""
-    files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
-    if not files:
-        raise FileNotFoundError(
-            f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
-        )
-    return files
-
-
-def clean_directory(dirname: Path) -> None:
-    """Clean up existing files to avoid conflicts"""
-    if Path(dirname).exists():
-        for f in Path(dirname).glob("*"):
-            if f.is_file():
-                f.unlink()
-
-
-def extract_json_from_zip(data_path: Path, file_path: Path) -> None:
-    """
-    Extract .jsonl files from zip file and save them in `file_path`
-    """
-    clean_directory(file_path)
-    zipfiles = sorted(glob.glob(f"{str(data_path)}/*.zip"))
-    for file in zipfiles:
-        with zipfile.ZipFile(file, "r") as zipf:
-            for fn in zipf.infolist():
-                fn.filename = Path(fn.filename).name
-                zipf.extract(fn, file_path)
-
-
-def read_jsonl_from_file(filename: str) -> list[JsonBlob]:
-    with open(filename, "r") as f:
-        data = [json.loads(line.strip()) for line in f.readlines()]
+    file_path = data_dir / filename
+    if not file_path.is_file():
+        # File may not have been uncompressed yet so try to do that first
+        data = srsly.read_gzip_jsonl(file_path)
+        # This time if it isn't there it really doesn't exist
+        if not file_path.is_file():
+            raise FileNotFoundError(f"No valid .jsonl file found in `{data_dir}`")
+    else:
+        data = srsly.read_gzip_jsonl(file_path)
     return data
 
 
 def validate(
-    data: list[JsonBlob],
+    data: tuple[JsonBlob],
     model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
@@ -95,7 +79,7 @@ async def get_elastic_client() -> AsyncElasticsearch:
     return elastic_client
 
 
-async def create_index(mappings_path: Path, client: AsyncElasticsearch) -> None:
+async def create_index(client: AsyncElasticsearch, mappings_path: Path) -> None:
     """Create an index associated with an alias in ElasticSearch"""
     with open(mappings_path, "rb") as f:
         config = json.load(f)
@@ -135,66 +119,48 @@ async def bulk_index_wines_to_elastic(
             print(f"A document failed to index: {response}")
 
 
-async def main(files: list[str]) -> None:
+async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         elastic_client = await get_elastic_client()
         INDEX_ALIAS = os.environ.get("ELASTIC_INDEX_ALIAS")
         if not elastic_client.indices.exists_alias(name=INDEX_ALIAS):
             print(f"Did not find index {INDEX_ALIAS} in db, creating index...\n")
-            await create_index(Path("mapping/mapping.json"), elastic_client)
-        for file in files:
-            data = read_jsonl_from_file(file)
-            validated_data = validate(data, Wine)
+            await create_index(elastic_client, Path("mapping/mapping.json"))
+        counter = 0
+        for chunk in chunked_data:
+            validated_data = validate(chunk, Wine)
+            counter += len(validated_data)
+            ids = [item["id"] for item in validated_data]
             try:
                 await bulk_index_wines_to_elastic(elastic_client, INDEX_ALIAS, validated_data)
-                print(f"Indexed {Path(file).name} to db")
+                print(f"Indexed {counter} items in the ID range {min(ids)}-{max(ids)} to db")
             except Exception as e:
-                print(f"{e}: Failed to index {Path(file).name} to db")
+                print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
         # Close AsyncElasticsearch client
         await elastic_client.close()
-        print("Finished execution")
 
 
 if __name__ == "__main__":
+    # fmt: off
     parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=0,
-        help="Limit the size of the dataset to load for testing purposes",
-    )
-    parser.add_argument(
-        "--refresh",
-        action="store_true",
-        help="Refresh zip file data by clearing existing directory & extracting them again",
-    )
-    parser.add_argument(
-        "--filename",
-        type=str,
-        default="winemag-data-130k-v2-jsonl.zip",
-        help="Name of the JSONL zip file to use",
-    )
+    parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
+    parser.add_argument("--chunksize", type=int, default=10_000, help="Size of each chunk to break the dataset into before processing")
+    parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
     args = vars(parser.parse_args())
+    # fmt: on
 
     LIMIT = args["limit"]
     DATA_DIR = Path(__file__).parents[3] / "data"
-    ZIPFILE = DATA_DIR / args["filename"]
-    # Get file path for unzipped files
-    filename = Path(args["filename"]).stem
-    FILE_PATH = DATA_DIR / filename
+    FILENAME = args["filename"]
+    CHUNKSIZE = args["chunksize"]
 
-    # Extract JSONL files from zip files if `--refresh` flag is set
-    if args["refresh"]:
-        # Extract all json files from zip files from their parent directory and save them in `parent_dir/data`.
-        extract_json_from_zip(DATA_DIR, FILE_PATH)
-
-    files = get_json_files("winemag-data", FILE_PATH)
-    assert files, f"No files found in {FILE_PATH}"
-
+    data = list(get_json_data(DATA_DIR, FILENAME))
     if LIMIT > 0:
-        files = files[:LIMIT]
+        data = data[:LIMIT]
+
+    chunked_data = chunk_iterable(data, CHUNKSIZE)
 
     # Run main async event loop
-    if files:
-        asyncio.run(main(files))
+    asyncio.run(main(chunked_data))
+    print("Finished execution")
