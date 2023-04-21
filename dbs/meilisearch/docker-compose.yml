@@ -24,14 +24,14 @@ services:
     env_file:
       - .env
     ports:
-      - 8003:8003
+      - ${API_PORT}:8000
     depends_on:
       - meilisearch
     volumes:
       - ./:/wine
     networks:
       - wine
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8003 --reload
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
   meili_data:

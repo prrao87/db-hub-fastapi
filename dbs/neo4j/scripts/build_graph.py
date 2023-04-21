@@ -1,13 +1,11 @@
 import argparse
 import asyncio
-import glob
-import json
 import os
 import sys
-import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
+import srsly
 from dotenv import load_dotenv
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 from pydantic.main import ModelMetaclass
@@ -27,40 +25,25 @@ class FileNotFoundError(Exception):
 # --- Blocking functions ---
 
 
-def get_json_files(file_prefix: str, file_path: Path) -> list[str]:
+def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
+    """
+    Break a large iterable into an iterable of smaller iterables of size `chunksize`
+    """
+    for i in range(0, len(item_list), chunksize):
+        yield tuple(item_list[i : i + chunksize])
+
+
+def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
     """Get all line-delimited json files (.jsonl) from a directory with a given prefix"""
-    files = sorted(glob.glob(f"{file_path}/{file_prefix}*.jsonl"))
-    if not files:
-        raise FileNotFoundError(
-            f"No .jsonl files with prefix `{file_prefix}` found in `{file_path}`"
-        )
-    return files
-
-
-def clean_directory(dirname: Path) -> None:
-    """Clean up existing files to avoid conflicts"""
-    if Path(dirname).exists():
-        for f in Path(dirname).glob("*"):
-            if f.is_file():
-                f.unlink()
-
-
-def extract_json_from_zip(data_path: Path, file_path: Path) -> None:
-    """
-    Extract .jsonl files from zip file and save them in `file_path`
-    """
-    clean_directory(file_path)
-    zipfiles = sorted(glob.glob(f"{str(data_path)}/*.zip"))
-    for file in zipfiles:
-        with zipfile.ZipFile(file, "r") as zipf:
-            for fn in zipf.infolist():
-                fn.filename = Path(fn.filename).name
-                zipf.extract(fn, file_path)
-
-
-def read_jsonl_from_file(filename: str) -> list[JsonBlob]:
-    with open(filename, "r") as f:
-        data = [json.loads(line.strip()) for line in f.readlines()]
+    file_path = data_dir / filename
+    if not file_path.is_file():
+        # File may not have been uncompressed yet so try to do that first
+        data = srsly.read_gzip_jsonl(file_path)
+        # This time if it isn't there it really doesn't exist
+        if not file_path.is_file():
+            raise FileNotFoundError(f"No valid .jsonl file found in `{data_dir}`")
+    else:
+        data = srsly.read_gzip_jsonl(file_path)
     return data
 
 
@@ -124,64 +107,52 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
     await tx.run(query, data=data)
 
 
-async def main(files: list[str]) -> None:
+async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)
             # Build subgraph of wines and location edges using async transactions
-            for file in files:
-                data = read_jsonl_from_file(file)
-                validated_data = validate(data, Wine)
-                await session.execute_write(build_query, validated_data)
-                print(f"Ingested {Path(file).name} to db")
+            counter = 0
+            for chunk in chunked_data:
+                validated_data = validate(chunk, Wine)
+                counter += len(validated_data)
+                ids = [item["id"] for item in validated_data]
+                try:
+                    await session.execute_write(build_query, validated_data)
+                    print(f"Indexed {counter} items to db")
+                except Exception as e:
+                    print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
 
 
 if __name__ == "__main__":
+    # fmt: off
     parser = argparse.ArgumentParser("Build a graph from the wine reviews JSONL data")
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=0,
-        help="Limit the size of the dataset to load for testing purposes",
-    )
-    parser.add_argument(
-        "--refresh",
-        action="store_true",
-        help="Refresh zip file data by clearing existing directory & extracting them again",
-    )
-    parser.add_argument(
-        "--filename",
-        type=str,
-        default="winemag-data-130k-v2-jsonl.zip",
-        help="Name of the JSONL zip file to use",
-    )
+    parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
+    parser.add_argument("--chunksize", type=int, default=10_000, help="Size of each chunk to break the dataset into before processing")
+    parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
     args = vars(parser.parse_args())
+    # fmt: on
 
     LIMIT = args["limit"]
     DATA_DIR = Path(__file__).parents[3] / "data"
-    ZIPFILE = DATA_DIR / args["filename"]
-    # Get file path for unzipped files
-    filename = Path(args["filename"]).stem
-    FILE_PATH = DATA_DIR / filename
+    FILENAME = args["filename"]
+    CHUNKSIZE = args["chunksize"]
 
     # # Neo4j
     URI = "bolt://localhost:7687"
     NEO4J_USER = "neo4j"
     NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 
-    # Extract JSONL files from zip files if `--refresh` flag is set
-    if args["refresh"]:
-        # Extract all json files from zip files from their parent directory and save them in `parent_dir/data`.
-        extract_json_from_zip(DATA_DIR, FILE_PATH)
-
-    files = get_json_files("winemag-data", FILE_PATH)
-    assert files, f"No files found in {FILE_PATH}"
-
+    data = list(get_json_data(DATA_DIR, FILENAME))
     if LIMIT > 0:
-        files = files[:LIMIT]
+        data = data[:LIMIT]
+
+    chunked_data = chunk_iterable(data, CHUNKSIZE)
     # Run async graph loader
     import uvloop
 
     uvloop.install()
-    asyncio.run(main(files))
+    asyncio.run(main(chunked_data))
+    if data:
+        print("Finished execution!")
