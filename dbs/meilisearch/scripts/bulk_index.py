@@ -14,6 +14,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from meilisearch_python_async import Client
+from meilisearch_python_async.models.settings import MeilisearchSettings
 from meilisearch_python_async.index import Index
 from pydantic.main import ModelMetaclass
 
@@ -91,62 +92,21 @@ def validate(
     return validated_data
 
 
-def process_file(file_name: str) -> tuple[str, list[JsonBlob]]:
+def process_file(file_name: str) -> tuple[list[JsonBlob], str]:
     data = read_jsonl_from_file(file_name)
     validated_data = validate(data, Wine, exclude_none=True)
     return validated_data, file_name
 
 
+def get_meili_settings(filename: str) -> MeilisearchSettings:
+    with open(filename, "r") as f:
+        settings = json.load(f)
+    # Convert to MeilisearchSettings pydantic model object
+    settings = MeilisearchSettings(**settings)
+    return settings
+
+
 # --- Async functions ---
-
-
-async def _update_searchable_attributes(
-    client: Client,
-    index_name: str,
-) -> None:
-    """Set searchable attributes as a subset of fields (only those that we need) to speed up indexing"""
-    fields = [
-        "title",
-        "description",
-        "country",
-        "province",
-        "variety",
-        "region_1",
-        "region_2",
-        "taster_name",
-    ]
-    index = client.index(index_name)
-    await index.update_searchable_attributes(fields)
-
-
-async def _update_filterable_attributes(
-    client: Client,
-    index_name: str,
-) -> None:
-    """Set faceted filters so that we can more effectively narrow down search results"""
-    fields = [
-        "price",
-        "points",
-        "country",
-        "province",
-        "variety",
-    ]
-    index = client.index(index_name)
-    await index.update_filterable_attributes(fields)
-
-
-async def _update_sortable_attributes(
-    client: Client,
-    index_name: str,
-) -> None:
-    """Set sortable order in results to obtain more relevant search results"""
-    fields = [
-        "points",
-        "price",
-    ]
-    index = client.index(index_name)
-    await index.update_sortable_attributes(fields)
-
 
 async def update_documents_to_index(
     index: Index, primary_key: str, data: list[JsonBlob], file_name: str
@@ -155,18 +115,19 @@ async def update_documents_to_index(
     print(f"Indexed {Path(file_name).name} to db")
 
 
-async def main(files: list[str]) -> None:
+async def main(files: list[str], meili_settings: MeilisearchSettings) -> None:
     settings = Settings()
     URI = f"http://{settings.meili_url}:{settings.meili_port}"
     MASTER_KEY = settings.meili_master_key
+    index_name = "wines"
+    primary_key = "id"
     async with Client(URI, MASTER_KEY) as client:
-        await asyncio.gather(
-            _update_searchable_attributes(client, "wines"),
-            _update_filterable_attributes(client, "wines"),
-            _update_sortable_attributes(client, "wines"),
-        )
-        index = client.index("wines")
-        primary_key = "id"
+        # Create index
+        index = client.index(index_name)
+        # Update settings
+        await client.index(index_name).update_settings(meili_settings)
+        print("Finished updating database index settings")
+
         print("Processing files")
         with ProcessPoolExecutor() as process_pool:
             # Attach process pool to running event loop so that we can process multiple files in parallel
@@ -226,5 +187,6 @@ if __name__ == "__main__":
     if LIMIT > 0:
         files = files[:LIMIT]
 
+    meili_settings = get_meili_settings(filename="settings.json")
     # Run main async event loop
-    asyncio.run(main(files))
+    asyncio.run(main(files, meili_settings))
