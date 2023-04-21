@@ -6,3 +6,4 @@ aiohttp>=3.8.4
 uvloop>=0.17.0
 uvicorn>=0.21.0, <1.0.0
 python-dotenv>=1.0.0
+srsly>=2.4.6

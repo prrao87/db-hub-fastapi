@@ -1,0 +1,62 @@
+{
+    "rankingRules": [
+        "words",
+        "typo",
+        "proximity",
+        "attribute",
+        "sort",
+        "exactness",
+        "points:desc"
+    ],
+    "searchableAttributes": [
+        "title",
+        "description",
+        "country",
+        "province",
+        "variety",
+        "region_1",
+        "region_2",
+        "taster_name"
+    ],
+    "filterableAttributes": [
+        "price",
+        "points",
+        "country",
+        "province",
+        "variety"
+    ],
+    "displayedAttributes": [
+        "title",
+        "country",
+        "province",
+        "variety",
+        "taster_name",
+        "description"
+    ],
+    "sortableAttributes": [
+        "points",
+        "price"
+    ],
+    "stopWords": [
+        "the",
+        "a",
+        "an",
+        "of",
+        "to",
+        "in",
+        "for",
+        "on"
+    ],
+    "typoTolerance": {
+        "minWordSizeForTypos": {
+            "oneTypo": 4,
+            "twoTypos": 9
+        }
+    },
+    "pagination": {
+        "maxTotalHits": 500
+    },
+    "faceting": {
+        "maxValuesPerFacet": 100
+    }
+}
