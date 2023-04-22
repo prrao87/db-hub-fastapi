@@ -57,9 +57,7 @@ def get_embedding_pipeline(onnx_path, model_filename: str) -> pipeline:
     """
     # Reload tokenizer
     tokenizer = AutoTokenizer.from_pretrained(onnx_path)
-    optimized_model = ORTModelForCustomTasks.from_pretrained(
-        onnx_path, file_name=model_filename
-    )
+    optimized_model = ORTModelForCustomTasks.from_pretrained(onnx_path, file_name=model_filename)
     embedding_pipeline = pipeline("feature-extraction", model=optimized_model, tokenizer=tokenizer)
     return embedding_pipeline
 
@@ -85,5 +83,7 @@ if __name__ == "__main__":
     optimize_onnx_model(onnx_path)
     # Next, quantize the optimized ONNX model
     quantize_optimized_onnx_model(onnx_path)
-    embedding_pipeline = get_embedding_pipeline(onnx_path, model_filename="model_optimized_quantized.onnx")
+    embedding_pipeline = get_embedding_pipeline(
+        onnx_path, model_filename="model_optimized_quantized.onnx"
+    )
     main(embedding_pipeline, text)

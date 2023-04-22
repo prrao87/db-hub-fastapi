@@ -97,8 +97,7 @@ def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     # Preload optimized, quantized ONNX sentence transformers model
     # NOTE: This requires that the script onnx_optimizer.py has been run beforehand
     pipeline = get_embedding_pipeline(
-        "onnx_models",
-        model_filename="model_optimized_quantized.onnx"
+        "onnx_models", model_filename="model_optimized_quantized.onnx"
     )
 
     counter = 0

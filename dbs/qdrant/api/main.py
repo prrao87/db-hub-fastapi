@@ -10,6 +10,7 @@ from api.routers.wine import wine_router
 
 from scripts.onnx_optimizer import get_embedding_pipeline
 
+
 @lru_cache()
 def get_settings():
     # Use lru_cache to avoid loading .env file for every request
@@ -22,8 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     model_checkpoint = settings.embedding_model_checkpoint
     app.model = get_embedding_pipeline(
-        "scripts/onnx_models",
-        model_filename="model_optimized_quantized.onnx"
+        "scripts/onnx_models", model_filename="model_optimized_quantized.onnx"
     )
     app.client = QdrantClient(host=settings.qdrant_service, port=settings.qdrant_port)
     print("Successfully connected to Qdrant")
