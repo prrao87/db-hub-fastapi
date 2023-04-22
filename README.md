@@ -8,10 +8,10 @@ Example code is provided for numerous databases, along with FastAPI docker deplo
 * Neo4j
 * Elasticsearch
 * Meilisearch
+* Qdrant
 
 #### 🚧 Coming soon
 
-* Qdrant
 * Weviate
 
 
