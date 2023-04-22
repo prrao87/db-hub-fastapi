@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 
 from fastapi import FastAPI
-from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 
 from api.config import Settings
 from api.routers.wine import wine_router
 
+from scripts.onnx_optimizer import get_embedding_pipeline
 
 @lru_cache()
 def get_settings():
@@ -21,7 +21,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Async context manager for Qdrant database connection."""
     settings = get_settings()
     model_checkpoint = settings.embedding_model_checkpoint
-    app.model = SentenceTransformer(model_checkpoint, device="cpu")
+    app.model = get_embedding_pipeline(
+        "scripts/onnx_models",
+        model_filename="model_optimized_quantized.onnx"
+    )
     app.client = QdrantClient(host=settings.qdrant_service, port=settings.qdrant_port)
     print("Successfully connected to Qdrant")
     yield

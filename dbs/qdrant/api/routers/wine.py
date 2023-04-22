@@ -1,7 +1,7 @@
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from fastapi import APIRouter, HTTPException, Query, Request
-from sentence_transformers import SentenceTransformer
+from optimum.pipelines import pipeline
 
 from schemas.retriever import SimilaritySearch
 
@@ -39,10 +39,10 @@ def search_by_keywords(
 
 
 def _search_by_keywords(
-    client: QdrantClient, model: SentenceTransformer, collection: str, terms: str, max_price: float
+    client: QdrantClient, model: pipeline, collection: str, terms: str, max_price: float
 ) -> list[SimilaritySearch] | None:
     """Convert input text query into a vector for lookup in the db"""
-    vector = model.encode(terms).tolist()
+    vector = model(terms)[0][0]
 
     # Define a range filter for wine price
     filter = models.Filter(
