@@ -123,7 +123,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-
     # Example sentences we want sentence embeddings for
     source_sentence = "I'm very happy"
     sentences = ["I am so glad", "I'm so sad", "My dog is missing", "The universe is so vast!"]
