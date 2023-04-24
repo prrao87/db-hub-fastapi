@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class SimilaritySearch(BaseModel):
     id: int
     country: str
+    province: str | None
     title: str
     description: str | None
     points: int
