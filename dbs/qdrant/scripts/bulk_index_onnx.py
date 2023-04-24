@@ -7,13 +7,13 @@ from typing import Any, Iterator
 
 import srsly
 from dotenv import load_dotenv
-from pydantic.main import ModelMetaclass
-from optimum.pipelines import pipeline
 from optimum.onnxruntime import ORTModelForCustomTasks
-from transformers import AutoTokenizer
+from optimum.pipelines import pipeline
+from pydantic.main import ModelMetaclass
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
