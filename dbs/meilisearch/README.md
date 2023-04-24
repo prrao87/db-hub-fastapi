@@ -45,7 +45,7 @@ docker compose down
 **Note:** The setup shown here would not be ideal in production, as there are other details related to security and scalability that are not addressed via simple docker, but, this is a good starting point to begin experimenting!
 
 
-## Step 1: Ingest the data
+## Step 2: Ingest the data
 
 The first step is to ingest the wine reviews dataset into Meilisearch. Data is asynchronously ingested into the Meilisearch database through the scripts in the `scripts` directory.
 

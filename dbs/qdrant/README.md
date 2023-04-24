@@ -2,7 +2,7 @@
 
 [Qdrant](https://qdrant.tech/) is a vector database and vector similarity search engine written in Rust. The primary use case for a vector database is to retrieve results that are most semantically similar to the input natural language query. The semantic similarity is obtained by comparing the sentence embeddings (which are n-dimensional vectors) between the input query and the data stored in the database. Most vector DBs, including Qdrant, store both the metadata (as JSON) and the sentence embeddings of text on which we want to search (as vectors), allowing us to perform much more flexible searches than keyword-only search databases.
 
-Code is provided for ingesting the wine reviews dataset into Qdrant. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8000/docs).
+Code is provided for ingesting the wine reviews dataset into Qdrant. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8005/docs).
 
 * Unlike "normal" databases, in a vector DB, the vectorization process is the biggest bottleneck, and because a lot of vector DBs are relatively new, they do not yet support async indexing (although they will soon).
 * [Pydantic](https://docs.pydantic.dev) is used for schema validation, both prior to data ingestion and during API request handling
