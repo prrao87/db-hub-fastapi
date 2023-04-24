@@ -8,13 +8,14 @@ from typing import Any, Iterator
 import srsly
 from dotenv import load_dotenv
 from pydantic.main import ModelMetaclass
+from optimum.pipelines import pipeline
+from optimum.onnxruntime import ORTModelForCustomTasks
+from transformers import AutoTokenizer
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from tqdm import tqdm
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
-from onnx_models.onnx_optimizer import get_embedding_pipeline
-
 from api.config import Settings
 from schemas.wine import Wine
 
@@ -83,6 +84,17 @@ def create_payload_index_on_text_field(
     )
 
 
+def get_embedding_pipeline(onnx_path, model_filename: str) -> pipeline:
+    """
+    Create a sentence embedding pipeline using the optimized ONNX model
+    """
+    # Reload tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(onnx_path)
+    optimized_model = ORTModelForCustomTasks.from_pretrained(onnx_path, file_name=model_filename)
+    embedding_pipeline = pipeline("feature-extraction", model=optimized_model, tokenizer=tokenizer)
+    return embedding_pipeline
+
+
 def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     settings = get_settings()
     COLLECTION = "wines"
@@ -95,9 +107,9 @@ def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     # Create payload with text field whose sentence embeddings will be added to the index
     create_payload_index_on_text_field(client, COLLECTION, "to_vectorize")
     # Preload optimized, quantized ONNX sentence transformers model
-    # NOTE: This requires that the script onnx_optimizer.py has been run beforehand
+    # NOTE: This requires that the script ../onnx_model/onnx_optimizer.py has been run beforehand
     pipeline = get_embedding_pipeline(
-        "onnx_models", model_filename="model_optimized_quantized.onnx"
+        ONNX_PATH, model_filename="model_optimized_quantized.onnx"
     )
 
     counter = 0
@@ -136,6 +148,7 @@ if __name__ == "__main__":
 
     LIMIT = args["limit"]
     DATA_DIR = Path(__file__).parents[3] / "data"
+    ONNX_PATH = Path(__file__).parents[1] / "onnx_model" / "onnx"
     FILENAME = args["filename"]
     CHUNKSIZE = args["chunksize"]
 

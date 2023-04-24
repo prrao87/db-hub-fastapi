@@ -9,7 +9,8 @@ from api.config import Settings
 from api.routers.wine import wine_router
 
 try:
-    from optimum import ORTModelForCustomTasks, pipeline
+    from optimum.onnxruntime import ORTModelForCustomTasks
+    from optimum.pipelines import pipeline
     from transformers import AutoTokenizer
 
     model_type = "onnx"
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.model_type = "sbert"
     elif model_type == "onnx":
         app.model = get_embedding_pipeline(
-            "onnx_models", model_filename=settings.onnx_model_filename
+            "onnx_model/onnx", model_filename=settings.onnx_model_filename
         )
         app.model_type = "onnx"
     # Define Qdrant client

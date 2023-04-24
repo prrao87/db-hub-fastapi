@@ -9,6 +9,6 @@ RUN pip install --no-cache-dir -r /wine/requirements-onnx.txt
 
 COPY ./api /wine/api
 COPY ./schemas /wine/schemas
-COPY ./scripts/onnx_models /wine/scripts/onnx_models
+COPY ./onnx_model /wine/onnx_model
 
 EXPOSE 8000
