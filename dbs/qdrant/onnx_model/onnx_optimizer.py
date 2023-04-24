@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from optimum.onnxruntime import ORTModelForCustomTasks, ORTOptimizer, ORTQuantizer
-from optimum.onnxruntime.configuration import OptimizationConfig, AutoQuantizationConfig
+from optimum.onnxruntime.configuration import AutoQuantizationConfig, OptimizationConfig
 from optimum.pipelines import pipeline
 from transformers import AutoTokenizer
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         "EMBEDDING_MODEL_CHECKPOINT",
         "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
     )
-    output_dir = "onnx_models"
+    output_dir = "onnx"
     onnx_path = convert_to_onnx(model_id, output_dir)
     # First, optimize the ONNX model
     optimize_onnx_model(onnx_path)
