@@ -13,10 +13,10 @@ from qdrant_client.http import models
 from tqdm import tqdm
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
+from onnx_models.onnx_optimizer import get_embedding_pipeline
+
 from api.config import Settings
 from schemas.wine import Wine
-
-from onnx_optimizer import get_embedding_pipeline
 
 load_dotenv()
 # Custom types
