@@ -108,9 +108,7 @@ def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     create_payload_index_on_text_field(client, COLLECTION, "to_vectorize")
     # Preload optimized, quantized ONNX sentence transformers model
     # NOTE: This requires that the script ../onnx_model/onnx_optimizer.py has been run beforehand
-    pipeline = get_embedding_pipeline(
-        ONNX_PATH, model_filename="model_optimized_quantized.onnx"
-    )
+    pipeline = get_embedding_pipeline(ONNX_PATH, model_filename="model_optimized_quantized.onnx")
 
     counter = 0
     for chunk in chunked_data:
