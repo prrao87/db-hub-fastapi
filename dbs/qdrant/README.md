@@ -1,16 +1,12 @@
 # Qdrant
 
-[Qdrant](https://qdrant.tech/) is a vector database and vector similarity search engine written in Rust. The primary use case for a vector database is to answer business questions that involve connected data.
+[Qdrant](https://qdrant.tech/) is a vector database and vector similarity search engine written in Rust. The primary use case for a vector database is to retrieve results that are most semantically similar to the input natural language query. The semantic similarity is obtained by comparing the sentence embeddings (which are n-dimensional vectors) between the input query and the data stored in the database. Most vector DBs, including Qdrant, store both the metadata (as JSON) and the sentence embeddings of text on which we want to search (as vectors), allowing us to perform much more flexible searches than keyword-only search databases.
 
-* Which wines from Chile were tasted by at least two different tasters?
-* What are the top-rated wines from Italy that share their variety with my favourite ones from Portugal?
+Code is provided for ingesting the wine reviews dataset into Qdrant. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8005/docs).
 
-Code is provided for ingesting the wine reviews dataset into Qdrant in an async fashion. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8000/docs).
-
-* All code (wherever possible) is async
+* Unlike "normal" databases, in a vector DB, the vectorization process is the biggest bottleneck, and because a lot of vector DBs are relatively new, they do not yet support async indexing (although they will soon).
 * [Pydantic](https://docs.pydantic.dev) is used for schema validation, both prior to data ingestion and during API request handling
-  * The same schema is used for data ingestion and for the API, so there is only one source of truth regarding how the data is handled
-* For ease of reproducibility, the whole setup is orchestrated and deployed via docker
+* For ease of reproducibility during development, the whole setup is orchestrated and deployed via docker
 
 ## Setup
 
@@ -30,26 +26,48 @@ python -m pip install -r requirements.txt
 
 ## Step 1: Set up containers
 
-Use the provided `docker-compose.yml` to initiate separate containers, one that runs Qdrant, and another one that serves as an API on top of the database.
+Docker compose files are provided, which start a persistent-volume Qdrant database with credentials specified in `.env`. The `qdrant` variable in the environment file under the `fastapi` service indicates that we are opening up the database service to FastAPI (running as a separate service, in a separate container) downstream. Both containers can communicate with one another with the common network that they share, on the exact port numbers specified.
+
+The database and API services can be restarted at any time for maintenance and updates by simply running the `docker restart <container_name>` command.
+
+**💡 Note:** The setup shown here would not be ideal in production, as there are other details related to security and scalability that are not addressed via simple docker, but, this is a good starting point to begin experimenting!
+
+### Option 1: Use `sbert` model
+
+If using the `sbert` model [from the sentence-transformers repo](https://www.sbert.net/) directly, use the provided `docker-compose.yml` to initiate separate containers, one that runs Qdrant, and another one that serves as an API on top of the database.
+
+**⚠️ Note**: This approach will attempt to run `sbert` on a GPU if available, and if not, on CPU (while utilizing all CPU cores). This approach may not yield the fastest vectorization if using CPU-only -- a more optimized version is provided [below](#option-2-use-onnxruntime-model-highly-optimized-for-cpu).
 
 ```
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
-
-This compose file starts a persistent-volume Qdrant database with credentials specified in `.env`. The `qdrant` variable in the environment file indicates that we are opening up the database service to a FastAPI server (running as a separate service, in a separate container) downstream. Both containers can communicate with one another with the common network that they share, on the exact port numbers specified.
-
-The services can be stopped at any time for maintenance and updates.
+Tear down the services using the following command.
 
 ```
-docker compose down
+docker compose -f docker-compose.yml down
 ```
 
-**Note:** The setup shown here would not be ideal in production, as there are other details related to security and scalability that are not addressed via simple docker, but, this is a good starting point to begin experimenting!
+### Option 2: Use `onnxruntime` model
+
+An approach to make the sentence embedding vector generation process more efficient is to optimize and quantize the original `sbert` model via [ONNX (Open Neural Network Exchange)](https://huggingface.co/docs/transformers/serialization). This framework provides a standard interface for optimizing deep learning models and their computational graphs to be executed much faster and with lower resources on specialized runtimes and hardware.
+
+To deploy the services with the optimized `sbert` model, use the provided `docker-compose.yml` to initiate separate containers, one that runs Qdrant, and another one that serves as an API on top of the database.
+
+**⚠️ Note**: This approach requires some more additional packages from Hugging Face, on top of the `sbert` modules. **Currently (as of early 2023), they only work on Python 3.10**. For this section, make sure to only use Python 3.10 if ONNX complains about module installations via `pip`.
+
+```
+docker compose -f docker-compose-onnx.yml up -d
+```
+Tear down the services using the following command.
+
+```
+docker compose -f docker-compose-onnx.yml down
+```
 
 
-## Step 1: Ingest the data
+## Step 2: Ingest the data
 
-Because Qdrant is a vector database, we ingest not only the wine reviews JSON blobs for each item, but also vectors (i.e., sentence embeddings) for the fields on which we want to perform a semantic similarity search. For this dataset, it's reasonable to expect that a simple concatenation of fields like `title`, `variety` and `description` would result in a useful sentence embedding that can be compared against a search query (which is also converted to a vector during query time).
+We ingest both the JSON data for full-text search and filtering, as well as the sentence embedding vectors (for similarity search) into Qdrant. For this dataset, it's reasonable to expect that a simple concatenation of fields like `title`, `variety` and `description` would result in a useful sentence embedding that can be compared against a search query which is also converted to a vector during query time.
 
 As an example, consider the following data snippet form the `data/` directory in this repo:
 
@@ -59,29 +77,63 @@ As an example, consider the following data snippet form the `data/` directory in
 "variety": "Red Blend"
 ```
 
+The three fields are concatenated for vectorization as follows:
+
+```py
+to_vectorize = data["variety"] + data["title"] + data["description"]
+```
+
 ### Choice of embedding model
 
 [SentenceTransformers](https://www.sbert.net/) is a Python framework for a range of sentence and text embeddings. It results from extensive work on fine-tuning BERT to work well on semantic similarity tasks using Siamese BERT networks, where the model is trained to predict the similarity between sentence pairs. The original work is [described here](https://arxiv.org/abs/1908.10084).
 
 #### Why use sentence transformers?
 
-Although larger and more powerful text embedding models exist (such as [OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings)), they can become really expensive as they are not free, and charge per token of text they generate vectors for. SentenceTransformers are free and open-source, and have been optimized for years for performance (to utilize all CPU cores) as well as accuracy. A full list of sentence transformer models [is in their project page](https://www.sbert.net/docs/pretrained_models.html).
+Although larger and more powerful text embedding models exist (such as [OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings)), they can become really expensive as they are not free, and charge per token of text. SentenceTransformers are free and open-source, and have been optimized for years for performance, both to utilize all CPU cores and for reduced size while maintaining performance. A full list of sentence transformer models [is in the project page](https://www.sbert.net/docs/pretrained_models.html).
 
-For this work, it makes sense to use among the fastest models in this list, which is the `multi-qa-MiniLM-L6-cos-v1` **uncased** model. As the name suggests, it was tuned for semantic search and question answering, and generates sentence embeddings for single sentences or paragraphs up to a maximum sequence length of 512. It was trained on 215M question answer pairs from various sources. Compared to the more general-purpose `all-MiniLM-L6-v2` model, it shows slightly improved performance on semantic search tasks while offering a similar level of performance. [See the sbert docs](https://www.sbert.net/docs/pretrained_models.html) for more details on performance comparisons between the various pretrained models.
+For this work, it makes sense to use among the fastest models in this list, which is the `multi-qa-MiniLM-L6-cos-v1` **uncased** model. As per the docs, it was tuned for semantic search and question answering, and generates sentence embeddings for single sentences or paragraphs up to a maximum sequence length of 512. It was trained on 215M question answer pairs from various sources. Compared to the more general-purpose `all-MiniLM-L6-v2` model, it shows slightly improved performance on semantic search tasks while offering a similar level of performance. [See the sbert docs](https://www.sbert.net/docs/pretrained_models.html) for more details on performance comparisons between the various pretrained models.
 
+### Build ONNX optimized model files
+
+A key step, if using ONNX runtime to speed up vectorization, is to build optimized and quantized models from the base `sbert` model. This is done by running the script `onnx_optimizer.py` in the `onnx_model/` directory.
+
+The optimization/quantization are done using a modified version of [this tutorial from Hugging Face](https://huggingface.co/blog/optimum-inference), via their `optimum` library that provides a high-level interface for most transformer models. As further reading, a detailed description of the optimization and quantization steps, including the difference between static and dynamic quantization [is available in the Hugging Face docs](https://huggingface.co/docs/optimum/concept_guides/quantization).
+
+```sh
+cd onnx_model
+python onnx_optimizer.py  # python -> python 3.10
+```
+
+Running this script generates a new directory `onnx_models/onnx` with the optimized and quantized models, along with their associated model config files.
+
+* `model_optimized.onnx`
+* `model_optimized_quantized.onnx`
+
+The `model_optimized_quantized.onnx` is a dynamically-quantized model file that is ~33% smaller in size than the original model in this case, and generates sentence  embeddings roughly ~40% faster than the original sentence transformers model, due to the optimized ONNX runtime. A more detailed blog post benchmarking these numbers will be published shortly!
 
 ### Run data loader
 
-Data is ingested into the Qdrant database through the scripts in the `scripts` directly.
+Data is ingested into the Qdrant database through the scripts in the `scripts` directly. The scripts validate the input JSON data via [Pydantic](https://docs.pydantic.dev), and then index both the JSON data and the vectors to Qdrant using the [Qdrant Python client](https://github.com/qdrant/qdrant-client).
+
+Prior to indexing and vectorizing, we simply concatenate the key fields that contain useful information about each wine and vectorize this instead.
+
+#### Option 1: USer `sbert`
+
+If running on a Macbook or other development machine, it's possible to generate sentence embeddings using the original `sbert` model as per the `EMBEDDING_MODEL_CHECKPOINT` variable in the `.env` file.
 
 ```sh
 cd scripts
 python bulk_index_sbert.py
 ```
 
-This script validates the input JSON data via [Pydantic](https://docs.pydantic.dev), and then indexes them to Qdrant using the [Qdrant Python client](https://github.com/qdrant/qdrant-client).
+#### Option 2: Use `onnx` quantized model
 
-We simply concatenate the key fields that contain useful information about each wine, and vectorize them prior to indexing them to the database.
+If running on a Linux server on a large dataset, it is highly recommended to use the ONNX quantized model for `EMBEDDING_MODEL_CHECKPOINT` model. If using the appropriate hardware on modern Intel chips, it can vastly outperform the original `sbert` model on CPU, allowing for lower-cost and higher-throughput indexing for much larger datasets.
+
+```sh
+cd scripts
+python bulk_index_onnx.py
+```
 
 
 ## Step 3: Test API
@@ -90,49 +142,52 @@ Once the data has been successfully loaded into Qdrant and the containers are up
 
 ```sh
 curl -X 'GET' \
-  'http://localhost:8000/wine/search?terms=tuscany%20red&max_price=50'
+  'http://0.0.0.0:8005/wine/search?terms=tuscany%20red&max_price=100&country=Italy'
 ```
 
-This cURL request passes the search terms "**tuscany red**" to the `/wine/search/` endpoint, which is then parsed into a working Cypher query by the FastAPI backend. The query runs and retrieves results from a full text search index (that looks for these keywords in the wine's title and description), and, if the setup was done correctly, we should see the following response:
+This cURL request passes the search terms "**tuscany red**", along with the country "Italy" and a maximum price of "100" to the `/wine/search/` endpoint, which is then parsed into a working filter query to Qdrant by the FastAPI backend. The query runs and retrieves results that are semantically similar to the input query for red Tuscan wines, and, if the setup was done correctly, we should see the following response:
 
 ```json
 [
     {
-        "wineID": 66393,
+        "id": 8456,
         "country": "Italy",
-        "title": "Capezzana 1999 Ghiaie Della Furba Red (Tuscany)",
-        "description": "Very much a baby, this is one big, bold, burly Cab-Merlot-Syrah blend that's filled to the brim with extracted plum fruit, bitter chocolate and earth. It takes a long time in the glass for it to lose its youthful, funky aromatics, and on the palate things are still a bit scattered. But in due time things will settle and integrate",
+        "province": "Tuscany",
+        "title": "Petra 2008 Petra Red (Toscana)",
+        "description": "From one of Italy's most important showcase designer wineries, this blend of Cabernet Sauvignon and Merlot lives up to its super Tuscan celebrity. It is gently redolent of dark chocolate, ripe fruit, leather, tobacco and crushed black pepper—the bouquet's elegant moderation is one of its strongest points. The mouthfeel is rich, creamy and long. Drink after 2018.",
+        "points": 92,
+        "price": 80.0,
+        "variety": "Red Blend",
+        "winery": "Petra"
+    },
+    {
+        "id": 896,
+        "country": "Italy",
+        "province": "Tuscany",
+        "title": "Le Buche 2006 Giuseppe Olivi Memento Red (Toscana)",
+        "description": "Le Buche is an interesting winery to watch, and its various Tuscan blends show great promise. Memento is equal parts Sangiovese and Syrah with a soft, velvety texture and a bright berry finish.",
         "points": 90,
-        "price": 49,
+        "price": 45.0,
         "variety": "Red Blend",
-        "winery": "Capezzana"
+        "winery": "Le Buche"
     },
     {
-        "wineID": 40960,
+        "id": 9343,
         "country": "Italy",
-        "title": "Fattoria di Grignano 2011 Pietramaggio Red (Toscana)",
-        "description": "Here's a simple but well made red from Tuscany that has floral aromas of violet and rose with berry notes. The palate offers bright cherry, red currant and a touch of spice. Pair this with pasta dishes or grilled vegetables.",
-        "points": 86,
-        "price": 11,
-        "variety": "Red Blend",
-        "winery": "Fattoria di Grignano"
-    },
-    {
-        "wineID": 73595,
-        "country": "Italy",
-        "title": "I Giusti e Zanza 2011 Belcore Red (Toscana)",
-        "description": "With aromas of violet, tilled soil and red berries, this blend of Sangiovese and Merlot recalls sunny Tuscany. It's loaded with wild cherry flavors accented by white pepper, cinnamon and vanilla. The palate is uplifted by vibrant acidity and fine tannins.",
+        "province": "Tuscany",
+        "title": "Poggio Mandorlo 2008 Red (Toscana)",
+        "description": "Made from Merlot and Cabernet Franc, this structured red offers aromas of black currant, toast, graphite and a whiff of cedar. The firm palate offers coconut, coffee, grilled sage and red berry alongside bracing tannins. Drink sooner rather than later to capture the fruit richness.",
         "points": 89,
-        "price": 27,
+        "price": 60.0,
         "variety": "Red Blend",
-        "winery": "I Giusti e Zanza"
+        "winery": "Poggio Mandorlo"
     }
 ]
 ```
 
-Not bad! This example correctly returns some highly rated Tuscan red wines along with their price and country of origin (obviously, Italy in this case).
+Not bad! This example correctly returns some highly rated Tuscan red wines form Italy along with their price. More specific search queries, such as low/high acidity, or flavour profiles of wines can also be entered to get more relevant results by country.
 
-### Step 4: Extend the API
+## Step 4: Extend the API
 
 The API can be easily extended with the provided structure.
 
@@ -146,13 +201,10 @@ The API can be easily extended with the provided structure.
 
 #### Existing endpoints
 
-So far, the following endpoints that help answer interesting questions have been implemented.
+As an example, a search endpoint is implemented and can be accessed via the API at the following URL.
 
 ```
 GET
 /wine/search
 Semantic similarity search
 ```
-
-More to come soon!
-

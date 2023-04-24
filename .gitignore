@@ -134,5 +134,5 @@ dmypy.json
 # data
 data/*.json
 data/*.jsonl
-*/*/meili_data
-dbs/qdrant/scripts/onnx_models
+dbs/meilisearch/meili_data
+dbs/qdrant/onnx_model/onnx

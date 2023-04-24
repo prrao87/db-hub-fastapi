@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     qdrant_service: str
     api_port = str
     embedding_model_checkpoint: str
+    onnx_model_filename: str
     tag: str
 
     class Config:
