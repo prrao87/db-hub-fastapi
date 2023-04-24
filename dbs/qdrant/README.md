@@ -97,7 +97,7 @@ For this work, it makes sense to use among the fastest models in this list, whic
 
 A key step, if using ONNX runtime to speed up vectorization, is to build optimized and quantized models from the base `sbert` model. This is done by running the script `onnx_optimizer.py` in the `onnx_model/` directory.
 
-The optimization/quantization are done using a modified version of [this tutorial from Hugging Face](https://huggingface.co/blog/optimum-inference), via their `optimum` library that provides a high-level interface for most transformer models. As further reading, a detailed description of the optimization and quantization steps, including the difference between static and dynamic quantization [is available in the Hugging Face docs](https://huggingface.co/docs/optimum/concept_guides/quantization).
+The optimization/quantization are done using a modified version of [the methods in this blog post](https://www.philschmid.de/optimize-sentence-transformers). We ony perform dynamic quantization for now as static quantization requires a very hardware and OS-specific set of instructions that don't generalize -- it only makes sense to do this in a production environment that is expected to serve thousands of requests in short time. As further reading, a detailed explanation of the difference between static and dynamic quantization [is available in the Hugging Face docs](https://huggingface.co/docs/optimum/concept_guides/quantization).
 
 ```sh
 cd onnx_model
@@ -109,7 +109,7 @@ Running this script generates a new directory `onnx_models/onnx` with the optimi
 * `model_optimized.onnx`
 * `model_optimized_quantized.onnx`
 
-The `model_optimized_quantized.onnx` is a dynamically-quantized model file that is ~33% smaller in size than the original model in this case, and generates sentence  embeddings roughly ~40% faster than the original sentence transformers model, due to the optimized ONNX runtime. A more detailed blog post benchmarking these numbers will be published shortly!
+The `model_optimized_quantized.onnx` is a dynamically-quantized model file that is ~26% smaller in size than the original model in this case, and generates sentence  embeddings roughly 1.8x faster than the original sentence transformers model, due to the optimized ONNX runtime. A more detailed blog post benchmarking these numbers will be published shortly!
 
 ### Run data loader
 
@@ -117,7 +117,7 @@ Data is ingested into the Qdrant database through the scripts in the `scripts` d
 
 Prior to indexing and vectorizing, we simply concatenate the key fields that contain useful information about each wine and vectorize this instead.
 
-#### Option 1: USer `sbert`
+#### Option 1: Use `sbert`
 
 If running on a Macbook or other development machine, it's possible to generate sentence embeddings using the original `sbert` model as per the `EMBEDDING_MODEL_CHECKPOINT` variable in the `.env` file.
 
@@ -128,7 +128,7 @@ python bulk_index_sbert.py
 
 #### Option 2: Use `onnx` quantized model
 
-If running on a Linux server on a large dataset, it is highly recommended to use the ONNX quantized model for `EMBEDDING_MODEL_CHECKPOINT` model. If using the appropriate hardware on modern Intel chips, it can vastly outperform the original `sbert` model on CPU, allowing for lower-cost and higher-throughput indexing for much larger datasets.
+If running on a Linux server on a large dataset, it is highly recommended to use the ONNX quantized model for the `EMBEDDING_MODEL_CHECKPOINT` model specified in `.env`. If using the appropriate hardware on modern Intel chips, it can vastly outperform the original `sbert` model on CPU, allowing for lower-cost and higher-throughput indexing for much larger datasets.
 
 ```sh
 cd scripts
