@@ -7,6 +7,7 @@ wine_router = APIRouter()
 
 # --- Routes ---
 
+
 @wine_router.get(
     "/search",
     response_model=list[SimilaritySearch],
@@ -14,7 +15,9 @@ wine_router = APIRouter()
 )
 def search_by_similarity(
     request: Request,
-    terms: str = Query(description="Specify terms to search for in the variety, title and description"),
+    terms: str = Query(
+        description="Specify terms to search for in the variety, title and description"
+    ),
 ) -> list[SimilaritySearch] | None:
     CLASS_NAME = "Wine"
     result = _search_by_similarity(request, CLASS_NAME, terms)
@@ -33,7 +36,9 @@ def search_by_similarity(
 )
 def search_by_similarity_and_country(
     request: Request,
-    terms: str = Query(description="Specify terms to search for in the variety, title and description"),
+    terms: str = Query(
+        description="Specify terms to search for in the variety, title and description"
+    ),
     country: str = Query(description="Country name to search for wines from"),
 ) -> list[SimilaritySearch] | None:
     CLASS_NAME = "Wine"
@@ -53,7 +58,9 @@ def search_by_similarity_and_country(
 )
 def search_by_similarity_and_filters(
     request: Request,
-    terms: str = Query(description="Specify terms to search for in the variety, title and description"),
+    terms: str = Query(
+        description="Specify terms to search for in the variety, title and description"
+    ),
     country: str = Query(description="Country name to search for wines from"),
     points: int = Query(default=85, description="Minimum number of points for a wine"),
     price: float = Query(default=100.0, description="Maximum price for a wine"),
@@ -150,7 +157,10 @@ def _search_by_similarity(
 
 
 def _search_by_similarity_and_country(
-    request: Request, class_name: str, terms: str, country: str,
+    request: Request,
+    class_name: str,
+    terms: str,
+    country: str,
 ) -> list[SimilaritySearch] | None:
     # Convert input text query into a vector for lookup in the db
     if request.app.model_type == "sbert":
@@ -194,7 +204,12 @@ def _search_by_similarity_and_country(
 
 
 def _search_by_similarity_and_filters(
-    request: Request, class_name: str, terms: str, country: str, points: int, price: float,
+    request: Request,
+    class_name: str,
+    terms: str,
+    country: str,
+    points: int,
+    price: float,
 ) -> list[SimilaritySearch] | None:
     # Convert input text query into a vector for lookup in the db
     if request.app.model_type == "sbert":
@@ -253,7 +268,9 @@ def _search_by_similarity_and_filters(
 
 
 def _count_by_country(
-    request: Request, class_name: str, country: str,
+    request: Request,
+    class_name: str,
+    country: str,
 ) -> CountByCountry | None:
     where_filter = {
         "operator": "And",
@@ -266,7 +283,10 @@ def _count_by_country(
         ],
     }
     response = (
-        request.app.client.query.aggregate(class_name).with_where(where_filter).with_fields("meta {count}").do()
+        request.app.client.query.aggregate(class_name)
+        .with_where(where_filter)
+        .with_fields("meta {count}")
+        .do()
     )
     try:
         payload = response["data"]["Aggregate"][class_name]
@@ -278,7 +298,11 @@ def _count_by_country(
 
 
 def _count_by_filters(
-    request: Request, class_name: str, country: str, points: int, price: float,
+    request: Request,
+    class_name: str,
+    country: str,
+    points: int,
+    price: float,
 ) -> CountByCountry | None:
     where_filter = {
         "operator": "And",
@@ -301,7 +325,10 @@ def _count_by_filters(
         ],
     }
     response = (
-        request.app.client.query.aggregate(class_name).with_where(where_filter).with_fields("meta {count}").do()
+        request.app.client.query.aggregate(class_name)
+        .with_where(where_filter)
+        .with_fields("meta {count}")
+        .do()
     )
     try:
         payload = response["data"]["Aggregate"][class_name]
