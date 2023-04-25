@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Query, Request
-
 from schemas.retriever import CountByCountry, SimilaritySearch
 
 wine_router = APIRouter()
