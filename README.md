@@ -9,11 +9,7 @@ Example code is provided for numerous databases, along with FastAPI docker deplo
 * Elasticsearch
 * Meilisearch
 * Qdrant
-
-#### 🚧 Coming soon
-
 * Weviate
-
 
 ## Goals
 
