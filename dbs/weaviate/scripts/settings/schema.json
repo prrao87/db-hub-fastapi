@@ -1,0 +1,50 @@
+{
+    "classes": [
+        {
+            "class": "Wine",
+            "vectorizer": "none",
+            "properties": [
+                {
+                    "name": "wineID",
+                    "dataType": ["int"]
+                },
+                {
+                    "name": "points",
+                    "dataType": ["int"]
+                },
+                {
+                    "name": "variety",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "title",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "description",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "price",
+                    "dataType": ["number"]
+                },
+                {
+                    "name": "country",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "province",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "taster_name",
+                    "dataType": ["text"]
+                },
+                {
+                    "name": "taster_twitter_handle",
+                    "dataType": ["text"]
+                }
+            ]
+        }
+    ]
+}
