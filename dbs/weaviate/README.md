@@ -2,7 +2,7 @@
 
 [Weaviate](https://weaviate.io/) is an ML-first vector search database written in Go. It allows users to store data objects and vector embeddings and scale to billions of objects, allowing for sub-millisecond searches. The primary use case for a vector database is to retrieve results that are most semantically similar to the input natural language query. The semantic similarity is obtained by comparing the sentence embeddings (which are n-dimensional vectors) between the input query and the data stored in the database. Most vector DBs, including Weaviate, store both the metadata (as JSON) and the sentence embeddings of text on which we want to search (as vectors), allowing us to perform much more flexible searches than keyword-only search databases. In the case of Weaviate, it even allows hybrid searches, giving developers the flexibility to decide what search methods work best on the data at hand.
 
-Code is provided for ingesting the wine reviews dataset into Weaviate. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8005/docs).
+Code is provided for ingesting the wine reviews dataset into Weaviate. In addition, a query API written in FastAPI is also provided that allows a user to query available endpoints. As always in FastAPI, documentation is available via OpenAPI (http://localhost:8004/docs).
 
 * Unlike "normal" databases, in a vector DB, the vectorization process is the biggest bottleneck, and because a lot of vector DBs are relatively new, they do not yet support async indexing (although they might, soon).
   * It doesn't make sense to focus on async requests for vector DBs at present -- rather, it makes more sense to focus on speeding up the vectorization process
@@ -139,10 +139,10 @@ python bulk_index_onnx.py
 
 Because vectorizing a large dataset can be an expensive step, part of the goal of this exercise is to see whether we can do so on CPU, with the fewest resources possible.
 
-In short, We are able to index all 129,971 wine reviews from the dataset in **28 min 30 sec**. The conditions under which this indexing time was achieved are listed below.
+In short, we are able to index all 129,971 wine reviews from the dataset in **28 min 30 sec**. The conditions under which this indexing time was achieved are listed below.
 
 * Ubuntu 22.04 EC2 `T2.xlarge` instance on AWS (1 CPU with 4 cores, 16 GB of RAM)
-* Python 3.10.10 (Did not use Python 3.11 because ONNX doesn't support it yet)
+* Python `3.10.10` (Did not use Python 3.11 because ONNX doesn't support it yet)
 * Quantized ONNX version of the `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` sentence transformer
 * Weaviate version `1.18.4`
 
@@ -152,47 +152,48 @@ Once the data has been successfully loaded into Weaviate and the containers are 
 
 ```sh
 curl -X 'GET' \
-  'http://0.0.0.0:8005/wine/search?terms=tuscany%20red&max_price=100&country=Italy'
+  'http://0.0.0.0:8004/wine/search?terms=tuscany%20red'
 ```
 
 This cURL request passes the search terms "**tuscany red**", along with the country "Italy" and a maximum price of "100" to the `/wine/search/` endpoint, which is then parsed into a working filter query to Weaviate by the FastAPI backend. The query runs and retrieves results that are semantically similar to the input query for red Tuscan wines, and, if the setup was done correctly, we should see the following response:
 
 ```json
 [
-    {
-        "id": 8456,
-        "country": "Italy",
-        "province": "Tuscany",
-        "title": "Petra 2008 Petra Red (Toscana)",
-        "description": "From one of Italy's most important showcase designer wineries, this blend of Cabernet Sauvignon and Merlot lives up to its super Tuscan celebrity. It is gently redolent of dark chocolate, ripe fruit, leather, tobacco and crushed black pepper—the bouquet's elegant moderation is one of its strongest points. The mouthfeel is rich, creamy and long. Drink after 2018.",
-        "points": 92,
-        "price": 80.0,
-        "variety": "Red Blend",
-        "winery": "Petra"
-    },
-    {
-        "id": 896,
-        "country": "Italy",
-        "province": "Tuscany",
-        "title": "Le Buche 2006 Giuseppe Olivi Memento Red (Toscana)",
-        "description": "Le Buche is an interesting winery to watch, and its various Tuscan blends show great promise. Memento is equal parts Sangiovese and Syrah with a soft, velvety texture and a bright berry finish.",
-        "points": 90,
-        "price": 45.0,
-        "variety": "Red Blend",
-        "winery": "Le Buche"
-    },
-    {
-        "id": 9343,
-        "country": "Italy",
-        "province": "Tuscany",
-        "title": "Poggio Mandorlo 2008 Red (Toscana)",
-        "description": "Made from Merlot and Cabernet Franc, this structured red offers aromas of black currant, toast, graphite and a whiff of cedar. The firm palate offers coconut, coffee, grilled sage and red berry alongside bracing tannins. Drink sooner rather than later to capture the fruit richness.",
-        "points": 89,
-        "price": 60.0,
-        "variety": "Red Blend",
-        "winery": "Poggio Mandorlo"
-    }
+  {
+    "wineID": 55924,
+    "country": "Italy",
+    "province": "Tuscany",
+    "title": "Col d'Orcia 2011 Spezieri Red (Toscana)",
+    "description": "This easy going blended red from Tuscany opens with bright cherry and blackberry aromas against a backdrop of bitter almond and a touch of Indian spice. The fresh acidity makes this a perfect pasta wine.",
+    "points": 87,
+    "price": 17,
+    "variety": "Red Blend",
+    "winery": "Col d'Orcia"
+  },
+  {
+    "wineID": 5525,
+    "country": "Italy",
+    "province": "Tuscany",
+    "title": "Grati 2014 Red (Toscana)",
+    "description": "Here's a frail red that offers weak sensations of sour cherry and strawberry alongside zesty acidity and fleeting, gritty tannins. It's short and dilute.",
+    "points": 83,
+    "price": 11,
+    "variety": "Red Blend",
+    "winery": "Grati"
+  },
+  {
+    "wineID": 40960,
+    "country": "Italy",
+    "province": "Tuscany",
+    "title": "Fattoria di Grignano 2011 Pietramaggio Red (Toscana)",
+    "description": "Here's a simple but well made red from Tuscany that has floral aromas of violet and rose with berry notes. The palate offers bright cherry, red currant and a touch of spice. Pair this with pasta dishes or grilled vegetables.",
+    "points": 86,
+    "price": 11,
+    "variety": "Red Blend",
+    "winery": "Fattoria di Grignano"
+  }
 ]
+Response headers
 ```
 
 Not bad! This example correctly returns some highly rated Tuscan red wines form Italy along with their price. More specific search queries, such as low/high acidity, or flavour profiles of wines can also be entered to get more relevant results by country.
