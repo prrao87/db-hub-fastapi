@@ -1,6 +1,7 @@
 from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, HTTPException, Query, Request
 from schemas.retriever import (
+    CountByCountry,
     FullTextSearch,
     TopWinesByCountry,
     TopWinesByProvince,
@@ -73,28 +74,44 @@ async def top_by_province(
     return result
 
 
-# @wine_router.get(
-#     "/most_by_variety",
-#     response_model=list[MostWinesByVariety],
-#     response_description="Get the countries with the most wines above a points-rating of a specified variety (blended or otherwise)",
-# )
-# async def most_by_variety(
-#     request: Request,
-#     variety: str = Query(
-#         description="Specify the variety of wine to search for (e.g., 'Pinot Noir' or 'Red Blend')"
-#     ),
-#     points: int = Query(
-#         default=85,
-#         description="Specify the minimum points-rating for the wine (e.g., 85)",
-#     ),
-# ) -> list[MostWinesByVariety] | None:
-#     result = await _most_by_variety(request.app.client, variety, points)
-#     if not result:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=f"No wine of the specified variety '{variety}' found in database - please try a different variety",
-#         )
-#     return result
+
+@wine_router.get(
+    "/count_by_country",
+    response_model=CountByCountry,
+    response_description="Get counts of wine for a particular country",
+)
+async def count_by_country(
+    request: Request,
+    country: str = Query(description="Country name to get counts for"),
+) -> CountByCountry| None:
+    result = await _count_by_country(request.app.client, country)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No wines from the provided province '{country}' found in database - please enter exact province name",
+        )
+    return result
+
+
+
+@wine_router.get(
+    "/count_by_filters",
+    response_model=CountByCountry,
+    response_description="Get counts of wine for a particular country, filtered by points and price",
+)
+async def count_by_filters(
+    request: Request,
+    country: str = Query(description="Country name to get counts for"),
+    points: int = Query(default=85, description="Minimum number of points for a wine"),
+    price: float = Query(default=100.0, description="Maximum price for a wine"),
+) -> CountByCountry | None:
+    result = await _count_by_filters(request.app.client, country, points, price)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No wines from the provided province '{country}' found in database - please enter exact province name",
+        )
+    return result
 
 
 # --- Elasticsearch query funcs ---
@@ -189,3 +206,32 @@ async def _top_by_province(
             data.append(data_dict)
         return data
     return None
+
+
+async def _count_by_country(
+    client: AsyncElasticsearch, country: str
+) -> CountByCountry | None:
+    response = await client.count(
+        index="wines", query={"bool": {"must": [{"match": {"country": country}}]}}
+    )
+    result = {"count": response.get("count", 0)}
+    return result
+
+
+async def _count_by_filters(
+    client: AsyncElasticsearch, country: str, points: float, price: int
+) -> CountByCountry | None:
+    response = await client.count(
+        index="wines",
+        query={
+            "bool": {
+                "must": [
+                    {"match": {"country": country}},
+                    {"range": {"points": {"gte": points}}},
+                    {"range": {"price": {"lte": price}}},
+                ]
+            }
+        },
+    )
+    result = {"count": response.get("count", 0)}
+    return result
