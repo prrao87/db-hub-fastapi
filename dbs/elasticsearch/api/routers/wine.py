@@ -74,7 +74,6 @@ async def top_by_province(
     return result
 
 
-
 @wine_router.get(
     "/count_by_country",
     response_model=CountByCountry,
@@ -83,7 +82,7 @@ async def top_by_province(
 async def count_by_country(
     request: Request,
     country: str = Query(description="Country name to get counts for"),
-) -> CountByCountry| None:
+) -> CountByCountry | None:
     result = await _count_by_country(request.app.client, country)
     if not result:
         raise HTTPException(
@@ -91,7 +90,6 @@ async def count_by_country(
             detail=f"No wines from the provided province '{country}' found in database - please enter exact province name",
         )
     return result
-
 
 
 @wine_router.get(
@@ -208,9 +206,7 @@ async def _top_by_province(
     return None
 
 
-async def _count_by_country(
-    client: AsyncElasticsearch, country: str
-) -> CountByCountry | None:
+async def _count_by_country(client: AsyncElasticsearch, country: str) -> CountByCountry | None:
     response = await client.count(
         index="wines", query={"bool": {"must": [{"match": {"country": country}}]}}
     )
