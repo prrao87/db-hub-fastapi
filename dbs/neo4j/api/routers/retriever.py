@@ -7,13 +7,13 @@ from schemas.retriever import (
     TopWinesByProvince,
 )
 
-wine_router = APIRouter()
+router = APIRouter()
 
 
 # --- Routes ---
 
 
-@wine_router.get(
+@router.get(
     "/search",
     response_model=list[FullTextSearch],
     response_description="Search wines by title and description",
@@ -35,7 +35,7 @@ async def search_by_keywords(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/top_by_country",
     response_model=list[TopWinesByCountry],
     response_description="Get top-rated wines by country",
@@ -56,7 +56,7 @@ async def top_by_country(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/top_by_province",
     response_model=list[TopWinesByProvince],
     response_description="Get top-rated wines by province",
@@ -77,7 +77,7 @@ async def top_by_province(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/most_by_variety",
     response_model=list[MostWinesByVariety],
     response_description="Get the countries with the most wines above a points-rating of a specified variety (blended or otherwise)",

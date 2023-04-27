@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
 
 from api.config import Settings
-from api.routers.wine import wine_router
+from api.routers import retriever
 
 
 @lru_cache()
@@ -48,4 +48,4 @@ async def root():
 
 
 # Attach routes
-app.include_router(wine_router, prefix="/wine", tags=["wine"])
+app.include_router(retriever.router, prefix="/wine", tags=["wine"])

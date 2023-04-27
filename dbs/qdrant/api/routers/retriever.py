@@ -1,16 +1,15 @@
 from fastapi import APIRouter, HTTPException, Query, Request
-from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from schemas.retriever import SimilaritySearch
 
-wine_router = APIRouter()
+router = APIRouter()
 
 
 # --- Routes ---
 
 
-@wine_router.get(
+@router.get(
     "/search",
     response_model=list[SimilaritySearch],
     response_description="Search wines by title, description and variety",
