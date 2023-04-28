@@ -1,4 +1,4 @@
-weaviate-client>=3.16.1
+weaviate-client>=3.16.2
 transformers==4.28.1
 sentence-transformers==2.2.2
 pydantic[dotenv]>=1.10.7, <2.0.0
