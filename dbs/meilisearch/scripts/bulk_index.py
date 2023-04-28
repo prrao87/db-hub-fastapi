@@ -90,9 +90,7 @@ async def update_documents_to_index(index: Index, primary_key: str, data: list[J
     print(f"Processed ids in range {min(ids)}-{max(ids)}")
 
 
-async def main(
-    data: list[JsonBlob], meili_settings: MeilisearchSettings
-) -> None:
+async def main(data: list[JsonBlob], meili_settings: MeilisearchSettings) -> None:
     settings = Settings()
     URI = f"http://{settings.meili_url}:{settings.meili_port}"
     MASTER_KEY = settings.meili_master_key

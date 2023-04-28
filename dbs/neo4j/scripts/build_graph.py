@@ -27,6 +27,7 @@ class FileNotFoundError(Exception):
 
 # --- Blocking functions ---
 
+
 @lru_cache()
 def get_settings():
     load_dotenv()
@@ -138,7 +139,9 @@ async def main(data: list[JsonBlob]) -> None:
                 awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
                 # Attach process pool to running event loop so that we can process multiple chunks in parallel
                 validated_data = await asyncio.gather(*awaitables)
-            print(f"Finished validating data in pydantic in {(time.time() - validation_start_time):.4f} sec.")
+            print(
+                f"Finished validating data in pydantic in {(time.time() - validation_start_time):.4f} sec."
+            )
 
             # Ingest the data into Neo4j
             # For now, we cannot attach this to the running event loop because uvloop complains

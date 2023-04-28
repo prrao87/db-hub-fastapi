@@ -27,5 +27,6 @@ class SimilaritySearch(BaseModel):
             }
         }
 
+
 class CountByCountry(BaseModel):
     count: int | None

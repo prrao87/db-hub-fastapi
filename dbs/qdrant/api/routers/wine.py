@@ -120,7 +120,9 @@ def count_by_filters(
 
 
 def _search_by_similarity(
-    request: Request, collection: str, terms: str,
+    request: Request,
+    collection: str,
+    terms: str,
 ) -> list[SimilaritySearch] | None:
     if request.app.model_type == "sbert":
         vector = request.app.model.encode(terms, batch_size=64).tolist()

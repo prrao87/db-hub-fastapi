@@ -28,6 +28,7 @@ class FileNotFoundError(Exception):
 
 # --- Blocking functions ---
 
+
 @lru_cache()
 def get_settings():
     # Use lru_cache to avoid loading .env file for every request
@@ -147,7 +148,9 @@ async def main(data: list[JsonBlob], index: str) -> None:
             awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
             # Attach process pool to running event loop so that we can process multiple chunks in parallel
             validated_data = await asyncio.gather(*awaitables)
-            tasks = [update_documents_to_index(elastic_client, index, data) for data in validated_data]
+            tasks = [
+                update_documents_to_index(elastic_client, index, data) for data in validated_data
+            ]
         try:
             await asyncio.gather(*tasks)
             print("Finished execution!")
