@@ -109,9 +109,7 @@ def add_vectors_to_index(data_chunk: tuple[JsonBlob, ...]) -> None:
     # Rename "id" (Weaviate reserves the "id" key for its own uuid assignment, so we can't use it)
     data = [{"wineID": id, **fields} for id, fields in zip(ids, data)]
     to_vectorize = [text.pop("to_vectorize") for text in data]
-    sentence_embeddings = [
-        pipeline(text.lower(), truncate=True)[0][0] for text in to_vectorize
-    ]
+    sentence_embeddings = [pipeline(text.lower(), truncate=True)[0][0] for text in to_vectorize]
     print(f"Finished vectorizing data in the ID range {min(ids)}-{max(ids)}")
     try:
         # Use a context manager to manage batch flushing
