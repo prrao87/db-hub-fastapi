@@ -81,6 +81,6 @@ tzdata==2023.3
 urllib3==1.26.15
 uvicorn==0.21.1
 validators==0.20.0
-weaviate-client==3.16.1
+weaviate-client==3.16.2
 xxhash==3.2.0
 yarl==1.9.1

@@ -26,3 +26,7 @@ class SimilaritySearch(BaseModel):
                 "winery": "Castellinuzza e Piuca",
             }
         }
+
+
+class CountByCountry(BaseModel):
+    count: int | None

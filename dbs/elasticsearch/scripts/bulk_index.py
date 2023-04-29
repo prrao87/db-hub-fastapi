@@ -1,9 +1,10 @@
 import argparse
 import asyncio
-import json
 import os
 import sys
 import warnings
+from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -13,6 +14,7 @@ from elasticsearch import AsyncElasticsearch, helpers
 from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
+from api.config import Settings
 from schemas.wine import Wine
 
 load_dotenv()
@@ -25,6 +27,12 @@ class FileNotFoundError(Exception):
 
 
 # --- Blocking functions ---
+
+
+@lru_cache()
+def get_settings():
+    # Use lru_cache to avoid loading .env file for every request
+    return Settings()
 
 
 def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
@@ -58,15 +66,20 @@ def validate(
     return validated_data
 
 
+def process_chunks(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
+    validated_data = validate(data, Wine, exclude_none=True)
+    return validated_data
+
+
 # --- Async functions ---
 
 
-async def get_elastic_client() -> AsyncElasticsearch:
+async def get_elastic_client(settings) -> AsyncElasticsearch:
     # Get environment variables
-    USERNAME = os.environ.get("ELASTIC_USER")
-    PASSWORD = os.environ.get("ELASTIC_PASSWORD")
-    PORT = os.environ.get("ELASTIC_PORT")
-    ELASTIC_URL = os.environ.get("ELASTIC_URL")
+    USERNAME = settings.elastic_user
+    PASSWORD = settings.elastic_password
+    PORT = settings.elastic_port
+    ELASTIC_URL = settings.elastic_url
     # Connect to ElasticSearch
     elastic_client = AsyncElasticsearch(
         f"http://{ELASTIC_URL}:{PORT}",
@@ -79,64 +92,70 @@ async def get_elastic_client() -> AsyncElasticsearch:
     return elastic_client
 
 
-async def create_index(client: AsyncElasticsearch, mappings_path: Path) -> None:
+async def create_index(client: AsyncElasticsearch, index: str, mappings_path: Path) -> None:
     """Create an index associated with an alias in ElasticSearch"""
-    with open(mappings_path, "rb") as f:
-        config = json.load(f)
+    elastic_config = dict(srsly.read_json(mappings_path))
+    assert elastic_config is not None
 
-    INDEX_ALIAS = os.environ.get("ELASTIC_INDEX_ALIAS")
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        #  Get settings and mappings from the mappings.json file
-        mappings = config.get("mappings")
-        settings = config.get("settings")
-        index_name = f"{INDEX_ALIAS}-1"
-        try:
-            await client.indices.create(index=index_name, mappings=mappings, settings=settings)
-            await client.indices.put_alias(index=index_name, name=INDEX_ALIAS)
-            # Verify that the new index has been created
-            assert await client.indices.exists(index=index_name)
-            index_and_alias = await client.indices.get_alias(index=index_name)
-            print(index_and_alias)
-        except Exception as e:
-            print(f"Warning: Did not create index {index_name} due to exception {e}\n")
-
-
-async def bulk_index_wines_to_elastic(
-    client: AsyncElasticsearch, index: str, wines: list[Wine]
-) -> None:
-    """Bulk index a wine JsonBlob to ElasticSearch"""
-    async for success, response in helpers.async_streaming_bulk(
-        client,
-        wines,
-        index=index,
-        chunk_size=5000,
-        max_retries=3,
-        initial_backoff=3,
-        max_backoff=10,
-    ):
-        if not success:
-            print(f"A document failed to index: {response}")
-
-
-async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        elastic_client = await get_elastic_client()
-        INDEX_ALIAS = os.environ.get("ELASTIC_INDEX_ALIAS")
-        if not elastic_client.indices.exists_alias(name=INDEX_ALIAS):
-            print(f"Did not find index {INDEX_ALIAS} in db, creating index...\n")
-            await create_index(elastic_client, Path("mapping/mapping.json"))
-        counter = 0
-        for chunk in chunked_data:
-            validated_data = validate(chunk, Wine)
-            counter += len(validated_data)
-            ids = [item["id"] for item in validated_data]
+    if not client.indices.exists_alias(name=index):
+        print(f"Did not find index {index} in db, creating index...\n")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            #  Get settings and mappings from the mappings.json file
+            mappings = elastic_config.get("mappings")
+            settings = elastic_config.get("settings")
+            index_name = f"{index}-1"
             try:
-                await bulk_index_wines_to_elastic(elastic_client, INDEX_ALIAS, validated_data)
-                print(f"Indexed {counter} items")
+                await client.indices.create(index=index_name, mappings=mappings, settings=settings)
+                await client.indices.put_alias(index=index_name, name=INDEX_ALIAS)
+                # Verify that the new index has been created
+                assert await client.indices.exists(index=index_name)
+                index_and_alias = await client.indices.get_alias(index=index_name)
+                print(index_and_alias)
             except Exception as e:
-                print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
+                print(f"Warning: Did not create index {index_name} due to exception {e}\n")
+    else:
+        print(f"Found index {index} in db, skipping index creation...\n")
+
+
+async def update_documents_to_index(
+    client: AsyncElasticsearch, index: str, data: list[Wine]
+) -> None:
+    await helpers.async_bulk(
+        client,
+        data,
+        index=index,
+        chunk_size=CHUNKSIZE,
+    )
+    ids = [item["id"] for item in data]
+    print(f"Processed ids in range {min(ids)}-{max(ids)}")
+
+
+async def main(data: list[JsonBlob], index: str) -> None:
+    settings = get_settings()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        elastic_client = await get_elastic_client(settings)
+        await create_index(elastic_client, index, Path("mapping/mapping.json"))
+
+        # Process multiple chunks of data in a process pool to avoid blocking the event loop
+        print("Processing chunks")
+        chunked_data = chunk_iterable(data, CHUNKSIZE)
+
+        with ProcessPoolExecutor() as pool:
+            loop = asyncio.get_running_loop()
+            executor_tasks = [partial(process_chunks, chunk) for chunk in chunked_data]
+            awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
+            # Attach process pool to running event loop so that we can process multiple chunks in parallel
+            validated_data = await asyncio.gather(*awaitables)
+            tasks = [
+                update_documents_to_index(elastic_client, index, data) for data in validated_data
+            ]
+        try:
+            await asyncio.gather(*tasks)
+            print("Finished execution!")
+        except Exception as e:
+            print(f"{e}: Error while indexing to db")
         # Close AsyncElasticsearch client
         await elastic_client.close()
 
@@ -155,12 +174,14 @@ if __name__ == "__main__":
     FILENAME = args["filename"]
     CHUNKSIZE = args["chunksize"]
 
+    # Specify an alias to index the data under
+    INDEX_ALIAS = get_settings().elastic_index_alias
+    assert INDEX_ALIAS
+
     data = list(get_json_data(DATA_DIR, FILENAME))
     if LIMIT > 0:
         data = data[:LIMIT]
 
-    chunked_data = chunk_iterable(data, CHUNKSIZE)
-
     # Run main async event loop
-    asyncio.run(main(chunked_data))
-    print("Finished execution!")
+    if data:
+        asyncio.run(main(data, INDEX_ALIAS))

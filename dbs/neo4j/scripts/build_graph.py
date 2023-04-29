@@ -2,6 +2,9 @@ import argparse
 import asyncio
 import os
 import sys
+import time
+from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -11,9 +14,9 @@ from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
+from api.config import Settings
 from schemas.wine import Wine
 
-load_dotenv()
 # Custom types
 JsonBlob = dict[str, Any]
 
@@ -23,6 +26,13 @@ class FileNotFoundError(Exception):
 
 
 # --- Blocking functions ---
+
+
+@lru_cache()
+def get_settings():
+    load_dotenv()
+    # Use lru_cache to avoid loading .env file for every request
+    return Settings()
 
 
 def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
@@ -53,6 +63,11 @@ def validate(
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
     validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    return validated_data
+
+
+def process_chunks(data: list[JsonBlob]) -> list[JsonBlob]:
+    validated_data = validate(data, Wine, exclude_none=True)
     return validated_data
 
 
@@ -107,22 +122,36 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
     await tx.run(query, data=data)
 
 
-async def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
+async def main(data: list[JsonBlob]) -> None:
     async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)
-            # Build subgraph of wines and location edges using async transactions
-            counter = 0
-            for chunk in chunked_data:
-                validated_data = validate(chunk, Wine)
-                counter += len(validated_data)
-                ids = [item["id"] for item in validated_data]
+
+            validation_start_time = time.time()
+            print("Processing chunks")
+            chunked_data = chunk_iterable(data, CHUNKSIZE)
+
+            with ProcessPoolExecutor() as pool:
+                loop = asyncio.get_running_loop()
+                # Validate multiple chunks of data using pydantic in a process pool for faster performance
+                executor_tasks = [partial(process_chunks, chunk) for chunk in chunked_data]
+                awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
+                # Attach process pool to running event loop so that we can process multiple chunks in parallel
+                validated_data = await asyncio.gather(*awaitables)
+            print(
+                f"Finished validating data in pydantic in {(time.time() - validation_start_time):.4f} sec."
+            )
+
+            # Ingest the data into Neo4j
+            # For now, we cannot attach this to the running event loop because uvloop complains
+            for data in validated_data:
+                ids = [item["id"] for item in data]
                 try:
-                    await session.execute_write(build_query, validated_data)
-                    print(f"Indexed {counter} items to db")
+                    await session.execute_write(build_query, data)
+                    print(f"Processed ids in range {min(ids)}-{max(ids)}")
                 except Exception as e:
-                    print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
+                    print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
 
 
 if __name__ == "__main__":
@@ -140,19 +169,19 @@ if __name__ == "__main__":
     CHUNKSIZE = args["chunksize"]
 
     # # Neo4j
-    URI = "bolt://localhost:7687"
-    NEO4J_USER = "neo4j"
-    NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
+    settings = get_settings()
+    URI = f"bolt://{settings.neo4j_url}:7687"
+    NEO4J_USER = settings.neo4j_user
+    NEO4J_PASSWORD = settings.neo4j_password
 
     data = list(get_json_data(DATA_DIR, FILENAME))
     if LIMIT > 0:
         data = data[:LIMIT]
 
-    chunked_data = chunk_iterable(data, CHUNKSIZE)
-    # Run async graph loader
+    # Run main async event loop using uvloop for slightly better performance
+    # Neo4j async python driver uses uvloop under the hood, which is why it makes sense
+    # to attach the uvloop policy to the asyncio event loop for our main function
     import uvloop
 
     uvloop.install()
-    asyncio.run(main(chunked_data))
-    if data:
-        print("Finished execution!")
+    asyncio.run(main(data))
