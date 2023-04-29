@@ -122,7 +122,8 @@ def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     print("Processing chunks")
     with ProcessPoolExecutor(max_workers=4) as executor:
         chunked_data = chunk_iterable(data, CHUNKSIZE)
-        executor.map(add_vectors_to_index, chunked_data)
+        for _ in executor.map(add_vectors_to_index, chunked_data):
+            pass
 
 
 if __name__ == "__main__":
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
     parser.add_argument("--chunksize", type=int, default=512, help="Size of each chunk to break the dataset into before processing")
-    parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
+    parser.add_argument("--workers", type=int, default=4, help="Number of workers to use for vectorization")
     args = vars(parser.parse_args())
     # fmt: on
 
@@ -138,6 +139,7 @@ if __name__ == "__main__":
     DATA_DIR = Path(__file__).parents[3] / "data"
     FILENAME = args["filename"]
     CHUNKSIZE = args["chunksize"]
+    WORKERS = args["workers"]
 
     data = list(get_json_data(DATA_DIR, FILENAME))
 

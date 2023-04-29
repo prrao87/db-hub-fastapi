@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
@@ -92,6 +93,42 @@ def create_or_update_schema(client: Client) -> None:
         client.schema.create(schema)
 
 
+def add_vectors_to_index(data_chunk: tuple[JsonBlob, ...]) -> None:
+    settings = get_settings()
+    CLASS_NAME = "Wine"
+    HOST = settings.weaviate_host
+    PORT = settings.weaviate_port
+    client = weaviate.Client(f"http://{HOST}:{PORT}")
+    data = validate(data_chunk, Wine, exclude_none=True)
+
+    # Preload optimized, quantized ONNX sentence transformers model
+    # NOTE: This requires that the script ../onnx_model/onnx_optimizer.py has been run beforehand
+    pipeline = get_embedding_pipeline(ONNX_PATH, model_filename="model_optimized_quantized.onnx")
+
+    ids = [item.pop("id") for item in data]
+    # Rename "id" (Weaviate reserves the "id" key for its own uuid assignment, so we can't use it)
+    data = [{"wineID": id, **fields} for id, fields in zip(ids, data)]
+    to_vectorize = [text.pop("to_vectorize") for text in data]
+    sentence_embeddings = [
+        pipeline(text.lower(), truncate=True)[0][0] for text in to_vectorize
+    ]
+    print(f"Finished vectorizing data in the ID range {min(ids)}-{max(ids)}")
+    try:
+        # Use a context manager to manage batch flushing
+        with client.batch as batch:
+            batch.batch_size = 64
+            batch.dynamic = True
+            for i, item in enumerate(data):
+                batch.add_data_object(
+                    item,
+                    CLASS_NAME,
+                    vector=sentence_embeddings[i],
+                )
+        print(f"Indexed ID range {min(ids)}-{max(ids)} to db")
+    except Exception as e:
+        print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
+
+
 def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     settings = get_settings()
     CLASS_NAME = "Wine"
@@ -101,57 +138,33 @@ def main(chunked_data: Iterator[tuple[JsonBlob, ...]]) -> None:
     # Add schema
     create_or_update_schema(client)
 
-    # Preload optimized, quantized ONNX sentence transformers model
-    # NOTE: This requires that the script ../onnx_model/onnx_optimizer.py has been run beforehand
-    pipeline = get_embedding_pipeline(ONNX_PATH, model_filename="model_optimized_quantized.onnx")
-
-    counter = 0
-    for chunk in chunked_data:
-        orig_data = validate(chunk, Wine, exclude_none=True)
-        counter += len(orig_data)
-        ids = [item.pop("id") for item in orig_data]
-        # Rename "id" (Weaviate reserves the "id" key for its own uuid assignment, so we can't use it)
-        data = [{"wineID": id, **fields} for id, fields in zip(ids, orig_data)]
-        to_vectorize = [text.pop("to_vectorize") for text in data]
-        sentence_embeddings = []
-        for text in tqdm(to_vectorize, desc="Generating sentence embeddings"):
-            sentence_embeddings.append(pipeline(text.lower())[0][0])
-        try:
-            # Use a context manager to manage batch flushing
-            with client.batch as batch:
-                batch.batch_size = 64
-                batch.dynamic = True
-                for i, item in enumerate(data):
-                    batch.add_data_object(
-                        item,
-                        CLASS_NAME,
-                        vector=sentence_embeddings[i],
-                    )
-            print(f"Indexed ID range {min(ids)}-{max(ids)} to db")
-            print(f"Indexed {counter} items in total")
-        except Exception as e:
-            print(f"{e}: Failed to index items in the ID range {min(ids)}-{max(ids)} to db")
+    print("Processing chunks")
+    with ProcessPoolExecutor(max_workers=WORKERS) as executor:
+        chunked_data = chunk_iterable(data, CHUNKSIZE)
+        for _ in executor.map(add_vectors_to_index, chunked_data):
+            pass
 
 
 if __name__ == "__main__":
     # fmt: off
     parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
-    parser.add_argument("--chunksize", type=int, default=1024, help="Size of each chunk to break the dataset into before processing")
+    parser.add_argument("--chunksize", type=int, default=512, help="Size of each chunk to break the dataset into before processing")
     parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
+    parser.add_argument("--workers", type=int, default=3, help="Number of workers to use for vectorization")
     args = vars(parser.parse_args())
     # fmt: on
 
     LIMIT = args["limit"]
     DATA_DIR = Path(__file__).parents[3] / "data"
-    ONNX_PATH = Path(__file__).parents[1] / "onnx_model" / "onnx"
     FILENAME = args["filename"]
     CHUNKSIZE = args["chunksize"]
+    WORKERS = args["workers"]
+    ONNX_PATH = Path(__file__).parents[1] / "onnx_model" / "onnx"
 
     data = list(get_json_data(DATA_DIR, FILENAME))
 
     if data:
         data = data[:LIMIT] if LIMIT > 0 else data
-        chunked_data = chunk_iterable(data, CHUNKSIZE)
-        main(chunked_data)
+        main(data)
         print("Finished execution!")
