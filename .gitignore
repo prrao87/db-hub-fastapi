@@ -136,3 +136,4 @@ data/*.json
 data/*.jsonl
 dbs/meilisearch/meili_data
 */*/onnx_model/onnx
+*/*/*/lancedb/*.lance
