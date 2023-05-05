@@ -93,7 +93,9 @@ def get_concat_vectors_and_data(validated_data: list[JsonBlob]) -> list[JsonBlob
         for chunk in tqdm(chunked_data, total=len(validated_data) // CHUNKSIZE):
             futures = [executor.submit(vectorize_text, chunk)]
             final_data.extend(f.result() for f in as_completed(futures) if f.result())
-    print(f"Finished vectorizing {len(data)} texts in {time.time() - vector_start_time:.4f} seconds")
+    print(
+        f"Finished vectorizing {len(data)} texts in {time.time() - vector_start_time:.4f} seconds"
+    )
     return final_data
 
 
