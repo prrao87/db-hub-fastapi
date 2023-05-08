@@ -7,13 +7,13 @@ from schemas.retriever import (
     TopWinesByProvince,
 )
 
-wine_router = APIRouter()
+router = APIRouter()
 
 
 # --- Routes ---
 
 
-@wine_router.get(
+@router.get(
     "/search",
     response_model=list[FullTextSearch],
     response_description="Search wines by title, description and variety",
@@ -22,7 +22,7 @@ async def search_by_keywords(
     request: Request,
     terms: str = Query(description="Search wine by keywords in title, description and variety"),
     max_price: int = Query(
-        default=10000.0, description="Specify the maximum price for the wine (e.g., 30)"
+        default=100.0, description="Specify the maximum price for the wine (e.g., 30)"
     ),
 ) -> list[FullTextSearch] | None:
     result = await _search_by_keywords(request.app.client, terms, max_price)
@@ -34,7 +34,7 @@ async def search_by_keywords(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/top_by_country",
     response_model=list[TopWinesByCountry],
     response_description="Get top-rated wines by country",
@@ -54,7 +54,7 @@ async def top_by_country(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/top_by_province",
     response_model=list[TopWinesByProvince],
     response_description="Get top-rated wines by province",
@@ -74,7 +74,7 @@ async def top_by_province(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/count_by_country",
     response_model=CountByCountry,
     response_description="Get counts of wine for a particular country",
@@ -92,7 +92,7 @@ async def count_by_country(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/count_by_filters",
     response_model=CountByCountry,
     response_description="Get counts of wine for a particular country, filtered by points and price",
