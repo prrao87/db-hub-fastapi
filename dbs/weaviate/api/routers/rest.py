@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from schemas.retriever import CountByCountry, SimilaritySearch
 
-wine_router = APIRouter()
+router = APIRouter()
 
 
 # --- Routes ---
 
 
-@wine_router.get(
+@router.get(
     "/search",
     response_model=list[SimilaritySearch],
     response_description="Search for wines via semantically similar terms",
@@ -28,7 +28,7 @@ def search_by_similarity(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/search_by_country",
     response_model=list[SimilaritySearch],
     response_description="Search for wines via semantically similar terms from a particular country",
@@ -50,7 +50,7 @@ def search_by_similarity_and_country(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/search_by_filters",
     response_model=list[SimilaritySearch],
     response_description="Search for wines via semantically similar terms with added filters",
@@ -74,7 +74,7 @@ def search_by_similarity_and_filters(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/count_by_country",
     response_model=CountByCountry,
     response_description="Get counts of wine for a particular country",
@@ -93,7 +93,7 @@ def count_by_country(
     return result
 
 
-@wine_router.get(
+@router.get(
     "/count_by_filters",
     response_model=CountByCountry,
     response_description="Get counts of wine for a particular country, filtered by points and price",
