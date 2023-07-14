@@ -26,6 +26,7 @@ class FullTextSearch(BaseModel):
     variety: str | None
     winery: str | None
 
+
 class TopWinesByCountry(BaseModel):
     wineID: int
     country: str

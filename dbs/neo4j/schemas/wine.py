@@ -7,7 +7,7 @@ class Wine(BaseModel):
         validate_assignment=True,
         extra="allow",
         str_strip_whitespace=True,
-        json_schema_extra = {
+        json_schema_extra={
             "example": {
                 "id": 45100,
                 "points": 85,
@@ -24,7 +24,7 @@ class Wine(BaseModel):
                 "taster_name": "Michael Schachner",
                 "taster_twitter_handle": "@wineschach",
             }
-        }
+        },
     )
 
     id: int
@@ -57,17 +57,18 @@ if __name__ == "__main__":
         "points": 85,
         "title": "Balduzzi 2012 Reserva Merlot (Maule Valley)",
         "description": "Ripe in color and aromas, this chunky wine delivers heavy baked-berry and raisin aromas in front of a jammy, extracted palate. Raisin and cooked berry flavors finish plump, with earthy notes.",
-        "price": 10,   # Test if field is cast to float
+        "price": 10,  # Test if field is cast to float
         "variety": "Merlot",
         "winery": "Balduzzi",
-        "designation": "Reserva",   # Test if field is renamed
-        "country": "null",   # Test unknown country
-        "province": " Maule Valley ",   # Test if field is stripped
+        "designation": "Reserva",  # Test if field is renamed
+        "country": "null",  # Test unknown country
+        "province": " Maule Valley ",  # Test if field is stripped
         "region_1": "null",
         "region_2": "null",
         "taster_name": "Michael Schachner",
         "taster_twitter_handle": "@wineschach",
     }
     from pprint import pprint
+
     wine = Wine(**data)
     pprint(wine.model_dump())

@@ -12,4 +12,3 @@ class Settings(BaseSettings):
     neo4j_user: str
     neo4j_password: str
     tag: str
-
