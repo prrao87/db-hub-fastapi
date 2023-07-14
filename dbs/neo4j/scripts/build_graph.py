@@ -3,15 +3,13 @@ import asyncio
 import os
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
 
 import srsly
 from dotenv import load_dotenv
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
-from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
@@ -59,15 +57,14 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: list[JsonBlob],
-    model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [Wine(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
 def process_chunks(data: list[JsonBlob]) -> list[JsonBlob]:
-    validated_data = validate(data, Wine, exclude_none=True)
+    validated_data = validate(data, exclude_none=True)
     return validated_data
 
 
@@ -127,31 +124,25 @@ async def main(data: list[JsonBlob]) -> None:
         async with driver.session(database="neo4j") as session:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)
-
+            # Validate
             validation_start_time = time.time()
-            print("Processing chunks")
-            chunked_data = chunk_iterable(data, CHUNKSIZE)
-
-            with ProcessPoolExecutor() as pool:
-                loop = asyncio.get_running_loop()
-                # Validate multiple chunks of data using pydantic in a process pool for faster performance
-                executor_tasks = [partial(process_chunks, chunk) for chunk in chunked_data]
-                awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
-                # Attach process pool to running event loop so that we can process multiple chunks in parallel
-                validated_data = await asyncio.gather(*awaitables)
+            print("Validating data...")
+            validated_data = validate(data, exclude_none=True)
+            chunked_data = chunk_iterable(validated_data, CHUNKSIZE)
             print(
-                f"Finished validating data in pydantic in {(time.time() - validation_start_time):.4f} sec."
+                f"Finished validating data in pydantic in {(time.time() - validation_start_time):.4f} sec"
             )
-
+            # Bulk ingest
+            ingestion_time = time.time()
             # Ingest the data into Neo4j
-            # For now, we cannot attach this to the running event loop because uvloop complains
-            for data in validated_data:
-                ids = [item["id"] for item in data]
+            for chunk in chunked_data:
+                ids = [item["id"] for item in chunk]
                 try:
-                    await session.execute_write(build_query, data)
+                    await session.execute_write(build_query, chunk)
                     print(f"Processed ids in range {min(ids)}-{max(ids)}")
                 except Exception as e:
                     print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
+            print(f"Finished ingesting data in {(time.time() - ingestion_time):.4f} sec")
 
 
 if __name__ == "__main__":

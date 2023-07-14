@@ -1,18 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class FullTextSearch(BaseModel):
-    wineID: int
-    country: str
-    title: str
-    description: str | None
-    points: int
-    price: float | str
-    variety: str | None
-    winery: str | None
-
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "wineID": 3845,
                 "country": "Italy",
@@ -24,6 +15,16 @@ class FullTextSearch(BaseModel):
                 "winery": "Castellinuzza e Piuca",
             }
         }
+    )
+
+    wineID: int
+    country: str
+    title: str
+    description: str | None
+    points: int
+    price: float | str
+    variety: str | None
+    winery: str | None
 
 
 class TopWinesByCountry(BaseModel):
