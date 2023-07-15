@@ -29,6 +29,7 @@ async def get_search_api_key(settings) -> str:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Search for wines by keyword phrase using Meilisearch
     settings = get_settings()
+    print(settings)
     search_key = await get_search_api_key(settings)
     URI = f"http://{settings.meili_service}:{settings.meili_port}"
     async with Client(URI, search_key) as client:
