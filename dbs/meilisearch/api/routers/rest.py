@@ -1,5 +1,6 @@
-from meilisearch_python_async import Client
 from fastapi import APIRouter, HTTPException, Query, Request
+from meilisearch_python_async import Client
+
 from schemas.retriever import (
     FullTextSearch,
     TopWinesByCountry,
