@@ -63,9 +63,7 @@ def validate(
     data: list[JsonBlob],
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [
-        Wine(**item).model_dump(exclude_none=exclude_none) for item in data
-    ]
+    validated_data = [Wine(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
