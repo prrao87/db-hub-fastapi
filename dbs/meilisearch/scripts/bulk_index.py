@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 from meilisearch_python_async import Client
 from meilisearch_python_async.index import Index
 from meilisearch_python_async.models.settings import MeilisearchSettings
-from pydantic.main import ModelMetaclass
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
@@ -62,15 +61,16 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: list[JsonBlob],
-    model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [
+        Wine(**item).model_dump(exclude_none=exclude_none) for item in data
+    ]
     return validated_data
 
 
 def process_chunks(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
-    validated_data = validate(data, Wine, exclude_none=True)
+    validated_data = validate(data, exclude_none=True)
     return validated_data
 
 
