@@ -103,6 +103,7 @@ async def _top_by_country(
         sort=["points:desc", "price:asc"],
     )
     if response:
+        print(response.hits)
         return response.hits
     return None
 

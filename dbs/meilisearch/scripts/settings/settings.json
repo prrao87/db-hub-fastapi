@@ -26,10 +26,14 @@
         "variety"
     ],
     "displayedAttributes": [
+        "id",
+        "points",
+        "price",
         "title",
         "country",
         "province",
         "variety",
+        "winery",
         "taster_name",
         "description"
     ],
