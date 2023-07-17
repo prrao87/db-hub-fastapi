@@ -1,5 +1,6 @@
 from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, HTTPException, Query, Request
+
 from schemas.retriever import (
     CountByCountry,
     FullTextSearch,
