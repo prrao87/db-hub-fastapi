@@ -1,7 +1,12 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="allow",
+    )
+
     elastic_service: str
     elastic_user: str
     elastic_password: str
@@ -10,5 +15,3 @@ class Settings(BaseSettings):
     elastic_index_alias: str
     tag: str
 
-    class Config:
-        env_file = ".env"
