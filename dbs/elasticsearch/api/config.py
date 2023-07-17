@@ -14,4 +14,3 @@ class Settings(BaseSettings):
     elastic_port: int
     elastic_index_alias: str
     tag: str
-

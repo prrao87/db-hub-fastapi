@@ -57,7 +57,6 @@ class Wine(BaseModel):
         return values
 
 
-
 if __name__ == "__main__":
     data = {
         "id": 45100,
