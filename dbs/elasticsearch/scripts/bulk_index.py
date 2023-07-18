@@ -11,10 +11,10 @@ from typing import Any, Iterator
 import srsly
 from dotenv import load_dotenv
 from elasticsearch import AsyncElasticsearch, helpers
+from schemas.wine import Wine
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
-from schemas.wine import Wine
 
 load_dotenv()
 # Custom types
