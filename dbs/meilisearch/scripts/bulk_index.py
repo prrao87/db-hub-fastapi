@@ -15,9 +15,10 @@ from meilisearch_python_async import Client
 from meilisearch_python_async.index import Index
 from meilisearch_python_async.models.settings import MeilisearchSettings
 
+from schemas.wine import Wine
+
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
-from schemas.wine import Wine
 
 load_dotenv()
 # Custom types
