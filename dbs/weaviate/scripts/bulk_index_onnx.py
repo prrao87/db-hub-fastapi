@@ -12,7 +12,6 @@ import weaviate
 from dotenv import load_dotenv
 from optimum.onnxruntime import ORTModelForCustomTasks
 from optimum.pipelines import pipeline
-from pydantic.main import ModelMetaclass
 from tqdm import tqdm
 from transformers import AutoTokenizer
 from weaviate.client import Client
@@ -60,10 +59,9 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: list[JsonBlob],
-    model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [Wine(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
@@ -99,7 +97,7 @@ def add_vectors_to_index(data_chunk: tuple[JsonBlob, ...]) -> None:
     HOST = settings.weaviate_host
     PORT = settings.weaviate_port
     client = weaviate.Client(f"http://{HOST}:{PORT}")
-    data = validate(data_chunk, Wine, exclude_none=True)
+    data = validate(data_chunk, exclude_none=True)
 
     # Preload optimized, quantized ONNX sentence transformers model
     # NOTE: This requires that the script ../onnx_model/onnx_optimizer.py has been run beforehand
