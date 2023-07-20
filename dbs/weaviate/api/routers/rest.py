@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, Request
+
 from api.schemas.rest import CountByCountry, SimilaritySearch
 
 router = APIRouter()
