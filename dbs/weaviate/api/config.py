@@ -7,7 +7,6 @@ class Settings(BaseSettings):
         extra="allow",
     )
 
-
     weaviate_service: str
     weaviate_port: str
     weaviate_host: str
@@ -16,4 +15,3 @@ class Settings(BaseSettings):
     embedding_model_checkpoint: str
     onnx_model_filename: str
     tag: str
-

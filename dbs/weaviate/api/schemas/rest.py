@@ -15,7 +15,7 @@ class SimilaritySearch(BaseModel):
                 "variety": "Red Blend",
                 "winery": "Castellinuzza e Piuca",
             }
-        }
+        },
     )
 
     wineID: int
