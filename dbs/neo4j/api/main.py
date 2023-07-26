@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
 
 from api.config import Settings
-from api.routers.wine import wine_router
+from api.routers import rest
 
 
 @lru_cache()
@@ -19,15 +19,15 @@ def get_settings():
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Async context manager for MongoDB connection."""
     settings = get_settings()
-    service = settings.db_service
+    service = settings.neo4j_service
     URI = f"bolt://{service}:7687"
-    AUTH = ("neo4j", settings.neo4j_password)
+    AUTH = (settings.neo4j_user, settings.neo4j_password)
     async with AsyncGraphDatabase.driver(URI, auth=AUTH) as driver:
         async with driver.session(database="neo4j") as session:
             app.session = session
             print("Successfully connected to wine reviews Neo4j DB")
             yield
-    print("Successfully closed wine reviews Neo4j connection")
+            print("Successfully closed wine reviews Neo4j connection")
 
 
 app = FastAPI(
@@ -48,4 +48,4 @@ async def root():
 
 
 # Attach routes
-app.include_router(wine_router, prefix="/wine", tags=["wine"])
+app.include_router(rest.router, prefix="/wine", tags=["wine"])

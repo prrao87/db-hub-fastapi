@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -70,14 +69,13 @@ def validate(
     return validated_data
 
 
-def process_file(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
+def process_chunks(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
     validated_data = validate(data, Wine, exclude_none=True)
     return validated_data
 
 
 def get_meili_settings(filename: str) -> MeilisearchSettings:
-    with open(filename, "r") as f:
-        settings = json.load(f)
+    settings = dict(srsly.read_json(filename))
     # Convert to MeilisearchSettings pydantic model object
     settings = MeilisearchSettings(**settings)
     return settings
@@ -89,12 +87,10 @@ def get_meili_settings(filename: str) -> MeilisearchSettings:
 async def update_documents_to_index(index: Index, primary_key: str, data: list[JsonBlob]) -> None:
     ids = [item[primary_key] for item in data]
     await index.update_documents(data, primary_key)
-    print(f"Indexed {len(ids)} ids in range {min(ids)}-{max(ids)} to db")
+    print(f"Processed ids in range {min(ids)}-{max(ids)}")
 
 
-async def main(
-    chunked_data: Iterator[tuple[JsonBlob, ...]], meili_settings: MeilisearchSettings
-) -> None:
+async def main(data: list[JsonBlob], meili_settings: MeilisearchSettings) -> None:
     settings = Settings()
     URI = f"http://{settings.meili_url}:{settings.meili_port}"
     MASTER_KEY = settings.meili_master_key
@@ -107,17 +103,20 @@ async def main(
         await client.index(index_name).update_settings(meili_settings)
         print("Finished updating database index settings")
 
-        print("Processing files")
-        with ProcessPoolExecutor() as process_pool:
-            # Attach process pool to running event loop so that we can process multiple files in parallel
+        # Process multiple chunks of data in a process pool to avoid blocking the event loop
+        print("Processing chunks")
+        chunked_data = chunk_iterable(data, CHUNKSIZE)
+
+        with ProcessPoolExecutor() as pool:
             loop = asyncio.get_running_loop()
-            calls = [partial(process_file, chunk) for chunk in chunked_data]
-            call_coroutines = [loop.run_in_executor(process_pool, call) for call in calls]
-            # Gather and run document update coroutines
-            coroutines = await asyncio.gather(*call_coroutines)
-            tasks = [update_documents_to_index(index, primary_key, data) for data in coroutines]
+            executor_tasks = [partial(process_chunks, chunk) for chunk in chunked_data]
+            awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
+            # Attach process pool to running event loop so that we can process multiple chunks in parallel
+            validated_data = await asyncio.gather(*awaitables)
+            tasks = [update_documents_to_index(index, primary_key, data) for data in validated_data]
         try:
             await asyncio.gather(*tasks)
+            print("Finished execution!")
         except Exception as e:
             print(f"{e}: Error while indexing to db")
 
@@ -140,11 +139,8 @@ if __name__ == "__main__":
     if LIMIT > 0:
         data = data[:LIMIT]
 
-    chunked_data = chunk_iterable(data, CHUNKSIZE)
-
     meili_settings = get_meili_settings(filename="settings/settings.json")
 
     # Run main async event loop
     if data:
-        asyncio.run(main(chunked_data, meili_settings))
-        print(f"Finished indexing {len(data)} JSONL files to db")
+        asyncio.run(main(data, meili_settings))
