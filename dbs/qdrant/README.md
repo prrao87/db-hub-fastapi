@@ -32,11 +32,11 @@ The database and API services can be restarted at any time for maintenance and u
 
 **💡 Note:** The setup shown here would not be ideal in production, as there are other details related to security and scalability that are not addressed via simple docker, but, this is a good starting point to begin experimenting!
 
-### Option 1: Use `sbert` model
+### Use `sbert` model
 
 If using the `sbert` model [from the sentence-transformers repo](https://www.sbert.net/) directly, use the provided `docker-compose.yml` to initiate separate containers, one that runs Qdrant, and another one that serves as an API on top of the database.
 
-**⚠️ Note**: This approach will attempt to run `sbert` on a GPU if available, and if not, on CPU (while utilizing all CPU cores). This approach may not yield the fastest vectorization if using CPU-only -- a more optimized version is provided [below](#option-2-use-onnxruntime-model-highly-optimized-for-cpu).
+**⚠️ Note**: This approach will attempt to run `sbert` on a GPU if available, and if not, on CPU (while utilizing all CPU cores).
 
 ```
 docker compose -f docker-compose.yml up -d
@@ -46,24 +46,6 @@ Tear down the services using the following command.
 ```
 docker compose -f docker-compose.yml down
 ```
-
-### Option 2: Use `onnxruntime` model
-
-An approach to make the sentence embedding vector generation process more efficient is to optimize and quantize the original `sbert` model via [ONNX (Open Neural Network Exchange)](https://huggingface.co/docs/transformers/serialization). This framework provides a standard interface for optimizing deep learning models and their computational graphs to be executed much faster and with lower resources on specialized runtimes and hardware.
-
-To deploy the services with the optimized `sbert` model, use the provided `docker-compose.yml` to initiate separate containers, one that runs Qdrant, and another one that serves as an API on top of the database.
-
-**⚠️ Note**: This approach requires some more additional packages from Hugging Face, on top of the `sbert` modules. **Currently (as of early 2023), they only work on Python 3.10**. For this section, make sure to only use Python 3.10 if ONNX complains about module installations via `pip`.
-
-```
-docker compose -f docker-compose-onnx.yml up -d
-```
-Tear down the services using the following command.
-
-```
-docker compose -f docker-compose-onnx.yml down
-```
-
 
 ## Step 2: Ingest the data
 
@@ -93,31 +75,11 @@ Although larger and more powerful text embedding models exist (such as [OpenAI e
 
 For this work, it makes sense to use among the fastest models in this list, which is the `multi-qa-MiniLM-L6-cos-v1` **uncased** model. As per the docs, it was tuned for semantic search and question answering, and generates sentence embeddings for single sentences or paragraphs up to a maximum sequence length of 512. It was trained on 215M question answer pairs from various sources. Compared to the more general-purpose `all-MiniLM-L6-v2` model, it shows slightly improved performance on semantic search tasks while offering a similar level of performance. [See the sbert docs](https://www.sbert.net/docs/pretrained_models.html) for more details on performance comparisons between the various pretrained models.
 
-### Build ONNX optimized model files
-
-A key step, if using ONNX runtime to speed up vectorization, is to build optimized and quantized models from the base `sbert` model. This is done by running the script `onnx_optimizer.py` in the `onnx_model/` directory.
-
-The optimization/quantization are done using a modified version of [the methods in this blog post](https://www.philschmid.de/optimize-sentence-transformers). We ony perform dynamic quantization for now as static quantization requires a very hardware and OS-specific set of instructions that don't generalize -- it only makes sense to do this in a production environment that is expected to serve thousands of requests in short time. As further reading, a detailed explanation of the difference between static and dynamic quantization [is available in the Hugging Face docs](https://huggingface.co/docs/optimum/concept_guides/quantization).
-
-```sh
-cd onnx_model
-python onnx_optimizer.py  # python -> python 3.10
-```
-
-Running this script generates a new directory `onnx_models/onnx` with the optimized and quantized models, along with their associated model config files.
-
-* `model_optimized.onnx`
-* `model_optimized_quantized.onnx`
-
-The `model_optimized_quantized.onnx` is a dynamically-quantized model file that is ~26% smaller in size than the original model in this case, and generates sentence  embeddings roughly 1.8x faster than the original sentence transformers model, due to the optimized ONNX runtime. A more detailed blog post benchmarking these numbers will be published shortly!
-
 ### Run data loader
 
 Data is ingested into the Qdrant database through the scripts in the `scripts` directly. The scripts validate the input JSON data via [Pydantic](https://docs.pydantic.dev), and then index both the JSON data and the vectors to Qdrant using the [Qdrant Python client](https://github.com/qdrant/qdrant-client).
 
 Prior to indexing and vectorizing, we simply concatenate the key fields that contain useful information about each wine and vectorize this instead.
-
-#### Option 1: Use `sbert`
 
 If running on a Macbook or other development machine, it's possible to generate sentence embeddings using the original `sbert` model as per the `EMBEDDING_MODEL_CHECKPOINT` variable in the `.env` file.
 
@@ -126,15 +88,7 @@ cd scripts
 python bulk_index_sbert.py
 ```
 
-#### Option 2: Use `onnx` quantized model
-
-If running on a Linux server on a large dataset, it is highly recommended to use the ONNX quantized model for the `EMBEDDING_MODEL_CHECKPOINT` model specified in `.env`. If using the appropriate hardware on modern Intel chips, it can vastly outperform the original `sbert` model on CPU, allowing for lower-cost and higher-throughput indexing for much larger datasets.
-
-```sh
-cd scripts
-python bulk_index_onnx.py
-```
-
+Depending on the CPU on your machine, this may take a while. On a 2022 M2 Macbook Pro, vectorizing and bulk-indexing ~130k records took about 25 minutes. When tested on an AWS EC2 T2 medium instance, the same process took just over an hour.
 
 ## Step 3: Test API
 
