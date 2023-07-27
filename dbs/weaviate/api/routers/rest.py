@@ -122,11 +122,7 @@ def _search_by_similarity(
     request: Request, class_name: str, terms: str
 ) -> list[SimilaritySearch] | None:
     # Convert input text query into a vector for lookup in the db
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms)[0][0]
-
+    vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
     near_vec = {"vector": vector}
     response = (
         request.app.client.query.get(
@@ -163,11 +159,7 @@ def _search_by_similarity_and_country(
     country: str,
 ) -> list[SimilaritySearch] | None:
     # Convert input text query into a vector for lookup in the db
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms)[0][0]
-
+    vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
     near_vec = {"vector": vector}
     where_filter = {
         "path": "country",
@@ -212,11 +204,7 @@ def _search_by_similarity_and_filters(
     price: float,
 ) -> list[SimilaritySearch] | None:
     # Convert input text query into a vector for lookup in the db
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms)[0][0]
-
+    vector = request.app.model.encode(terms, show_progress_bar=False, batch_size=128).tolist()
     near_vec = {"vector": vector}
     where_filter = {
         "operator": "And",
