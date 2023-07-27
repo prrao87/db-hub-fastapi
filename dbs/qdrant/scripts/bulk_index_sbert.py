@@ -8,14 +8,14 @@ from typing import Any, Iterator
 
 import srsly
 from dotenv import load_dotenv
-from pydantic.main import ModelMetaclass
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
+from sentence_transformers import SentenceTransformer
+
 from api.config import Settings
 from schemas.wine import Wine
-from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 # Custom types
@@ -56,10 +56,9 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: list[JsonBlob],
-    model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [Wine(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
@@ -92,7 +91,7 @@ def add_vectors_to_index(data_chunk: tuple[JsonBlob, ...]) -> None:
     settings = get_settings()
     collection = "wines"
     client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port, timeout=None)
-    data = validate(data_chunk, Wine, exclude_none=True)
+    data = validate(data_chunk, exclude_none=True)
 
     # Load a sentence transformer model for semantic similarity from a specified checkpoint
     model_id = get_settings().embedding_model_checkpoint

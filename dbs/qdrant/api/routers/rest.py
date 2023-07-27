@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from qdrant_client.http import models
 
-from schemas.retriever import CountByCountry, SimilaritySearch
+from api.schemas.rest import CountByCountry, SimilaritySearch
 
 router = APIRouter()
 
@@ -124,14 +124,10 @@ def _search_by_similarity(
     collection: str,
     terms: str,
 ) -> list[SimilaritySearch] | None:
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, batch_size=64).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms, truncate=True)[0][0]
-
+    vector = request.app.model.encode(terms, batch_size=64).tolist()
     # Use `vector` for similarity search on the closest vectors in the collection
     search_result = request.app.client.search(
-        collection_name=collection, query_vector=vector, top=5
+        collection_name=collection, query_vector=vector, limit=5
     )
     # `search_result` contains found vector ids with similarity scores along with the stored payload
     # For now we are interested in payload only
@@ -144,11 +140,7 @@ def _search_by_similarity(
 def _search_by_similarity_and_country(
     request: Request, collection: str, terms: str, country: str
 ) -> list[SimilaritySearch] | None:
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, batch_size=64).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms, truncate=True)[0][0]
-
+    vector = request.app.model.encode(terms, batch_size=64).tolist()
     filter = models.Filter(
         **{
             "must": [
@@ -162,7 +154,7 @@ def _search_by_similarity_and_country(
         }
     )
     search_result = request.app.client.search(
-        collection_name=collection, query_vector=vector, query_filter=filter, top=5
+        collection_name=collection, query_vector=vector, query_filter=filter, limit=5
     )
     payloads = [hit.payload for hit in search_result]
     if not payloads:
@@ -178,11 +170,7 @@ def _search_by_similarity_and_filters(
     points: int,
     price: float,
 ) -> list[SimilaritySearch] | None:
-    if request.app.model_type == "sbert":
-        vector = request.app.model.encode(terms, batch_size=64).tolist()
-    elif request.app.model_type == "onnx":
-        vector = request.app.model(terms, truncate=True)[0][0]
-
+    vector = request.app.model.encode(terms, batch_size=64).tolist()
     filter = models.Filter(
         **{
             "must": [
@@ -208,7 +196,7 @@ def _search_by_similarity_and_filters(
         }
     )
     search_result = request.app.client.search(
-        collection_name=collection, query_vector=vector, query_filter=filter, top=5
+        collection_name=collection, query_vector=vector, query_filter=filter, limit=5
     )
     payloads = [hit.payload for hit in search_result]
     if not payloads:
