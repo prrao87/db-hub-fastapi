@@ -12,9 +12,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
+from sentence_transformers import SentenceTransformer
+
 from api.config import Settings
 from schemas.wine import Wine
-from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 # Custom types

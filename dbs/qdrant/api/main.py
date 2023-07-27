@@ -4,12 +4,10 @@ from functools import lru_cache
 
 from fastapi import FastAPI
 from qdrant_client import QdrantClient
+from sentence_transformers import SentenceTransformer
 
 from api.config import Settings
 from api.routers import rest
-
-
-from sentence_transformers import SentenceTransformer
 
 model_type = "sbert"
 
