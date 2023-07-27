@@ -105,7 +105,9 @@ async def main() -> None:
             for i in range(BENCHMARK_NUM):
                 try:
                     tasks = [
-                        asyncio.create_task(update_documents_to_index(index, primary_key, validate(chunk)))
+                        asyncio.create_task(
+                            update_documents_to_index(index, primary_key, validate(chunk))
+                        )
                         for chunk in chunked_data
                     ]
                     await asyncio.gather(*tasks)

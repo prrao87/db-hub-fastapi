@@ -106,7 +106,9 @@ async def main() -> None:
                     data = list(get_json_data(DATA_DIR, FILENAME))
                     if LIMIT > 0:
                         data = data[:LIMIT]
-                    assert len(data) > 0, f"No data obtained from {FILENAME}, please check that the file is not empty"
+                    assert (
+                        len(data) > 0
+                    ), f"No data obtained from {FILENAME}, please check that the file is not empty"
                     # Index multiple chunks of data in a process pool to avoid blocking the event loop
                     print("Processing chunks")
                     chunked_data = list(chunk_iterable(data, CHUNKSIZE))
@@ -115,7 +117,10 @@ async def main() -> None:
                     awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
                     # Attach process pool to running event loop so that we can process multiple chunks in parallel
                     validated_data = await asyncio.gather(*awaitables)
-                    tasks = [update_documents_to_index(index, primary_key, data) for data in validated_data]
+                    tasks = [
+                        update_documents_to_index(index, primary_key, data)
+                        for data in validated_data
+                    ]
                     try:
                         await asyncio.gather(*tasks)
                         print(f"Finished run {i + 1} of benchmark")
