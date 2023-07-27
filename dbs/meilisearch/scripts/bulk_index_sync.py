@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
+import json
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
 
 import srsly
+from codetiming import Timer
 from dotenv import load_dotenv
-from meilisearch_python_async import Client
-from meilisearch_python_async.index import Index
-from meilisearch_python_async.models.settings import MeilisearchSettings
+from meilisearch import Client
+from meilisearch.index import Index
 
 from schemas.wine import Wine
 
@@ -62,62 +61,52 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: list[JsonBlob],
-    exclude_none: bool = False,
+    exclude_none: bool = True,
 ) -> list[JsonBlob]:
     validated_data = [Wine(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
-def process_chunks(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
-    validated_data = validate(data, exclude_none=True)
-    return validated_data
-
-
-def get_meili_settings(filename: str) -> MeilisearchSettings:
+def get_meili_settings(filename: str) -> dict[str, Any]:
     settings = dict(srsly.read_json(filename))
-    # Convert to MeilisearchSettings pydantic model object
-    settings = MeilisearchSettings(**settings)
     return settings
 
 
-# --- Async functions ---
-
-
-async def update_documents_to_index(index: Index, primary_key: str, data: list[JsonBlob]) -> None:
+def update_documents_to_index(index: Index, primary_key: str, data: list[JsonBlob]) -> None:
     ids = [item[primary_key] for item in data]
-    await index.update_documents(data, primary_key)
+    index.update_documents(data, primary_key)
     print(f"Processed ids in range {min(ids)}-{max(ids)}")
 
 
-async def main(data: list[JsonBlob], meili_settings: MeilisearchSettings) -> None:
-    settings = Settings()
-    URI = f"http://{settings.meili_url}:{settings.meili_port}"
-    MASTER_KEY = settings.meili_master_key
+def main() -> None:
+    meili_settings = get_meili_settings(filename="settings/settings.json")
+    config = Settings()
+    URI = f"http://{config.meili_url}:{config.meili_port}"
+    MASTER_KEY = config.meili_master_key
     index_name = "wines"
     primary_key = "id"
-    async with Client(URI, MASTER_KEY) as client:
+
+    client = Client(URI, MASTER_KEY)
+    with Timer(name="Bulk Index", text="Bulk index took {:.4f} seconds"):
         # Create index
         index = client.index(index_name)
         # Update settings
-        await client.index(index_name).update_settings(meili_settings)
+        client.index(index_name).update_settings(meili_settings)
         print("Finished updating database index settings")
 
         # Process multiple chunks of data in a process pool to avoid blocking the event loop
         print("Processing chunks")
-        chunked_data = chunk_iterable(data, CHUNKSIZE)
-
-        with ProcessPoolExecutor() as pool:
-            loop = asyncio.get_running_loop()
-            executor_tasks = [partial(process_chunks, chunk) for chunk in chunked_data]
-            awaitables = [loop.run_in_executor(pool, call) for call in executor_tasks]
-            # Attach process pool to running event loop so that we can process multiple chunks in parallel
-            validated_data = await asyncio.gather(*awaitables)
-            tasks = [update_documents_to_index(index, primary_key, data) for data in validated_data]
-        try:
-            await asyncio.gather(*tasks)
-            print("Finished execution!")
-        except Exception as e:
-            print(f"{e}: Error while indexing to db")
+        chunked_data = list(chunk_iterable(data, CHUNKSIZE))
+        for i in range(BENCHMARK_NUM):
+            try:
+                for chunk in chunked_data:
+                    # Process chunk
+                    validated_data = validate(chunk)
+                    # Update index
+                    update_documents_to_index(index, primary_key, validated_data)
+                print(f"Finished run {i + 1} of benchmark")
+            except Exception as e:
+                print(f"{e}: Error while indexing to db")
 
 
 if __name__ == "__main__":
@@ -126,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
     parser.add_argument("--chunksize", type=int, default=10_000, help="Size of each chunk to break the dataset into before processing")
     parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
+    parser.add_argument("--benchmark", "-b", type=int, default=1, help="Run a benchmark of the script N times")
     args = vars(parser.parse_args())
     # fmt: on
 
@@ -133,6 +123,7 @@ if __name__ == "__main__":
     DATA_DIR = Path(__file__).parents[3] / "data"
     FILENAME = args["filename"]
     CHUNKSIZE = args["chunksize"]
+    BENCHMARK_NUM = args["benchmark"]
 
     data = list(get_json_data(DATA_DIR, FILENAME))
     if LIMIT > 0:
@@ -140,6 +131,5 @@ if __name__ == "__main__":
 
     meili_settings = get_meili_settings(filename="settings/settings.json")
 
-    # Run main async event loop
-    if data:
-        asyncio.run(main(data, meili_settings))
+    # Run main function
+    main()
