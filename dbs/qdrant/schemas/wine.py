@@ -27,7 +27,6 @@ class Wine(BaseModel):
         },
     )
 
-
     id: int
     points: int
     title: str

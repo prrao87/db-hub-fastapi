@@ -19,6 +19,7 @@ def get_settings():
     # Use lru_cache to avoid loading .env file for every request
     return Settings()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Async context manager for Qdrant database connection."""
