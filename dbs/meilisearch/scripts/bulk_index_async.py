@@ -6,7 +6,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import srsly
 from codetiming import Timer
@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 from meilisearch_python_async import Client
 from meilisearch_python_async.index import Index
 from meilisearch_python_async.models.settings import MeilisearchSettings
-
 from schemas.wine import Wine
+from tqdm.asyncio import tqdm_asyncio
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
@@ -36,14 +36,6 @@ class FileNotFoundError(Exception):
 def get_settings():
     # Use lru_cache to avoid loading .env file for every request
     return Settings()
-
-
-def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[tuple[JsonBlob, ...]]:
-    """
-    Break a large iterable into an iterable of smaller iterables of size `chunksize`
-    """
-    for i in range(0, len(item_list), chunksize):
-        yield tuple(item_list[i : i + chunksize])
 
 
 def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
@@ -78,12 +70,6 @@ def get_meili_settings(filename: str) -> MeilisearchSettings:
 # --- Async functions ---
 
 
-async def update_documents_to_index(index: Index, primary_key: str, data: list[JsonBlob]) -> None:
-    ids = [item[primary_key] for item in data]
-    await index.update_documents(data, primary_key)
-    print(f"Processed ids in range {min(ids)}-{max(ids)}")
-
-
 async def main() -> None:
     meili_settings = get_meili_settings(filename="settings/settings.json")
     config = Settings()
@@ -98,29 +84,27 @@ async def main() -> None:
             # Update settings
             await client.index(index_name).update_settings(meili_settings)
             print("Finished updating database index settings")
-
-            # Process multiple chunks of data in a process pool to avoid blocking the event loop
-            print("Processing chunks")
-            chunked_data = list(chunk_iterable(data, CHUNKSIZE))
-            for i in range(BENCHMARK_NUM):
-                try:
-                    tasks = [
-                        asyncio.create_task(
-                            update_documents_to_index(index, primary_key, validate(chunk))
-                        )
-                        for chunk in chunked_data
-                    ]
-                    await asyncio.gather(*tasks)
-                    print(f"Finished run {i + 1} of benchmark")
-                except Exception as e:
-                    print(f"{e}: Error while indexing to db")
+            # Process data
+            validated_data = validate(data)
+            try:
+                tasks = [
+                    # Update index
+                    index.update_documents_in_batches(
+                        validated_data, batch_size=CHUNKSIZE, primary_key=primary_key
+                    )
+                    for _ in range(BENCHMARK_NUM)
+                ]
+                await tqdm_asyncio.gather(*tasks)
+                print(f"Finished running benchmarks")
+            except Exception as e:
+                print(f"{e}: Error while indexing to db")
 
 
 if __name__ == "__main__":
     # fmt: off
     parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
     parser.add_argument("--limit", type=int, default=0, help="Limit the size of the dataset to load for testing purposes")
-    parser.add_argument("--chunksize", type=int, default=10_000, help="Size of each chunk to break the dataset into before processing")
+    parser.add_argument("--chunksize", type=int, default=5_000, help="Size of each chunk to break the dataset into before processing")
     parser.add_argument("--filename", type=str, default="winemag-data-130k-v2.jsonl.gz", help="Name of the JSONL zip file to use")
     parser.add_argument("--benchmark", "-b", type=int, default=1, help="Run a benchmark of the script N times")
     args = vars(parser.parse_args())
