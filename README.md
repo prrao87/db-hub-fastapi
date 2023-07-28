@@ -32,11 +32,11 @@ The main goals of this repo are explained as follows.
 
 2. **Ease of distribution**: We may want to expose (potentially sensitive) data to downstream client applications, so building an API on top of the database can be a very useful tool to share the data in a controlled manner
 
-3. **Ease of testing advanced use cases**:Search databases (either full-text keyword search or vector DBs) can be important "sources of truth" for contextual querying via LLMs like ChatGPT, allowing us to ground our model's results with factual data.
+3. **Ease of testing advanced use cases**: Search databases (either full-text keyword search or vector DBs) can be important "sources of truth" for contextual querying via LLMs like ChatGPT, allowing us to ground our model's results with factual data.
 
 
 ## Pre-requisites
 
 * Python 3.10+
 * Docker
-* A passion to learn more about databases!
+* A passion to learn more about and experiment with databases!
