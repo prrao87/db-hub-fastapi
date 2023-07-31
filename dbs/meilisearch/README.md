@@ -24,7 +24,17 @@ python -m pip install -r requirements.txt
 
 ```
 
---- 
+## Create a .env file
+
+In the .env file add the following parameters, updating the values to match your setup
+
+```
+meili_service=meilisearch
+meili_master_key=masterKey
+meili_port=7700
+meili_url=127.0.0.1
+tag=latest
+```
 
 ## Step 1: Set up containers
 
@@ -51,7 +61,7 @@ The first step is to ingest the wine reviews dataset into Meilisearch. Data is a
 
 ```sh
 cd scripts
-python bulk_index.py
+python bulk_index_async.py
 ```
 
 * This script first sets important items like which fields are searchable, filterable and sortable:
