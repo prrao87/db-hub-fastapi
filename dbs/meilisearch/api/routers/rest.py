@@ -1,6 +1,7 @@
-from meilisearch_python_async import Client
 from fastapi import APIRouter, HTTPException, Query, Request
-from schemas.retriever import (
+from meilisearch_python_async import Client
+
+from api.schemas.rest import (
     FullTextSearch,
     TopWinesByCountry,
     TopWinesByProvince,
@@ -102,6 +103,7 @@ async def _top_by_country(
         sort=["points:desc", "price:asc"],
     )
     if response:
+        print(response.hits)
         return response.hits
     return None
 

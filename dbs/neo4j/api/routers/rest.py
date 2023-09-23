@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from neo4j import AsyncManagedTransaction
-from schemas.retriever import (
+
+from api.schemas.rest import (
     FullTextSearch,
     MostWinesByVariety,
     TopWinesByCountry,

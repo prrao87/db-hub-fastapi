@@ -11,11 +11,10 @@ from typing import Any, Iterator
 import srsly
 from dotenv import load_dotenv
 from elasticsearch import AsyncElasticsearch, helpers
-from pydantic.main import ModelMetaclass
+from schemas.wine import Wine
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
-from schemas.wine import Wine
 
 load_dotenv()
 # Custom types
@@ -59,15 +58,14 @@ def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
 
 def validate(
     data: tuple[JsonBlob],
-    model: ModelMetaclass,
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [model(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [Wine(**item).dict(exclude_none=exclude_none) for item in data]
     return validated_data
 
 
 def process_chunks(data: list[JsonBlob]) -> tuple[list[JsonBlob], str]:
-    validated_data = validate(data, Wine, exclude_none=True)
+    validated_data = validate(data, exclude_none=True)
     return validated_data
 
 

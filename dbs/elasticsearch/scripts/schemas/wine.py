@@ -46,16 +46,35 @@ class Wine(BaseModel):
     def _fill_country_unknowns(cls, values):
         "Fill in missing country values with 'Unknown', as we always want this field to be queryable"
         country = values.get("country")
-        if not country:
+        if country is None or country == "null":
             values["country"] = "Unknown"
         return values
 
     @model_validator(mode="before")
-    def _add_to_vectorize_fields(cls, values):
-        "Add a field to_vectorize that will be used to create sentence embeddings"
-        variety = values.get("variety", "")
-        title = values.get("title", "")
-        description = values.get("description", "")
-        to_vectorize = list(filter(None, [variety, title, description]))
-        values["to_vectorize"] = " ".join(to_vectorize).strip()
+    def _create_id(cls, values):
+        "Create an _id field because Elastic needs this to store as primary key"
+        values["_id"] = values["id"]
         return values
+
+
+if __name__ == "__main__":
+    data = {
+        "id": 45100,
+        "points": 85,
+        "title": "Balduzzi 2012 Reserva Merlot (Maule Valley)",
+        "description": "Ripe in color and aromas, this chunky wine delivers heavy baked-berry and raisin aromas in front of a jammy, extracted palate. Raisin and cooked berry flavors finish plump, with earthy notes.",
+        "price": 10,  # Test if field is cast to float
+        "variety": "Merlot",
+        "winery": "Balduzzi",
+        "designation": "Reserva",  # Test if field is renamed
+        "country": "null",  # Test unknown country
+        "province": " Maule Valley ",  # Test if field is stripped
+        "region_1": "null",
+        "region_2": "null",
+        "taster_name": "Michael Schachner",
+        "taster_twitter_handle": "@wineschach",
+    }
+    from pprint import pprint
+
+    wine = Wine(**data)
+    pprint(wine.model_dump(), sort_dicts=False)
