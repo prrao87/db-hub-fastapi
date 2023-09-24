@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  fastapi:
+    platform: linux/x86_64
+    image: lancedb_wine_fastapi:${TAG}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - ${API_PORT}:8000
+    volumes:
+      - ./:/winex
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
