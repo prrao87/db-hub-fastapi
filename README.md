@@ -17,12 +17,7 @@ The `docker-compose.yml` does the following:
 * Meilisearch
 * Qdrant
 * Weaviate
-
-### 🚧 In the pipeline
 * LanceDB
-* SurrealDB
-* MongoDB
-
 
 ## Goals
 
