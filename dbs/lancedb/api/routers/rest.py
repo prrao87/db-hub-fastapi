@@ -120,11 +120,7 @@ def _search_by_similarity(
 ) -> list[SimilaritySearch] | None:
     query_vector = request.app.model.encode(terms.lower())
     search_result = (
-        request.app.table.search(query_vector)
-        .metric("cosine")
-        .nprobes(NUM_PROBES)
-        .limit(5)
-        .to_df()
+        request.app.table.search(query_vector).metric("cosine").nprobes(NUM_PROBES).limit(5).to_df()
     ).to_dict(orient="records")
     if not search_result:
         return None
