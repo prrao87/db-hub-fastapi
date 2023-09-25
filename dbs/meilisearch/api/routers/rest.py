@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query, Request
-from meilisearch_python_async import Client
-
 from api.schemas.rest import (
     FullTextSearch,
     TopWinesByCountry,
     TopWinesByProvince,
 )
+from fastapi import APIRouter, HTTPException, Query, Request
+from meilisearch_python_async import Client
 
 router = APIRouter()
 

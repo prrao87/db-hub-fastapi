@@ -3,7 +3,6 @@ import os
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import lru_cache
-from math import e
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -16,10 +15,9 @@ from lancedb.pydantic import pydantic_to_schema
 from tqdm import tqdm
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
-from sentence_transformers import SentenceTransformer
-
 from api.config import Settings
 from schemas.wine import LanceModelWine, Wine
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 # Custom types
@@ -120,18 +118,6 @@ def main(data: list[JsonBlob]) -> None:
         tbl.create_index(metric="cosine", num_partitions=32, num_sub_vectors=96)
 
 
-def query_func() -> None:
-    DB_NAME = "../lancedb"
-    TABLE = "wines"
-    db = lancedb.connect(DB_NAME)
-    tbl = db.open_table(TABLE)
-    print(len(tbl))
-    MODEL = SentenceTransformer(get_settings().embedding_model_checkpoint)
-    query = "tropical fruit and citrus"
-    query_vector = embed_func([query], MODEL)[0]
-    print(tbl.search(query_vector).limit(5).to_df()[["id", "title", "description", "_distance"]])
-
-
 if __name__ == "__main__":
     # fmt: off
     parser = argparse.ArgumentParser("Bulk index database from the wine reviews JSONL data")
@@ -153,5 +139,3 @@ if __name__ == "__main__":
     data = data[:LIMIT] if LIMIT > 0 else data
     main(data)
     print("Finished execution!")
-
-    query_func()

@@ -13,7 +13,6 @@ from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
-
 from schemas.wine import Wine
 
 # Custom types

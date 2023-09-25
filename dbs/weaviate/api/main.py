@@ -4,11 +4,10 @@ from functools import lru_cache
 
 import weaviate
 from fastapi import FastAPI
+from sentence_transformers import SentenceTransformer
 
 from api.config import Settings
 from api.routers import rest
-
-from sentence_transformers import SentenceTransformer
 
 model_type = "sbert"
 

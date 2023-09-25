@@ -1,7 +1,6 @@
+from api.schemas.rest import CountByCountry, SimilaritySearch
 from fastapi import APIRouter, HTTPException, Query, Request
 from qdrant_client.http import models
-
-from api.schemas.rest import CountByCountry, SimilaritySearch
 
 router = APIRouter()
 

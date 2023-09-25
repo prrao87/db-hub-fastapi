@@ -1,12 +1,11 @@
-from elasticsearch import AsyncElasticsearch
-from fastapi import APIRouter, HTTPException, Query, Request
-
 from api.schemas.rest import (
     CountByCountry,
     FullTextSearch,
     TopWinesByCountry,
     TopWinesByProvince,
 )
+from elasticsearch import AsyncElasticsearch
+from fastapi import APIRouter, HTTPException, Query, Request
 
 router = APIRouter()
 
