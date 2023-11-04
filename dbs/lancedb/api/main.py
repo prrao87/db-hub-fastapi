@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sentence_transformers import SentenceTransformer
 
 from api.config import Settings
-from api.routers.rest import router 
+from api.routers.rest import router
 
 
 @lru_cache()
@@ -46,6 +46,7 @@ async def root():
     return {
         "message": "REST API for querying LanceDB database of 130k wine reviews from the Wine Enthusiast magazine"
     }
+
 
 # Attach routes
 app.include_router(router, prefix="/wine", tags=["wine"])

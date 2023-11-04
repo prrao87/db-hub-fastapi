@@ -27,9 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.model = SentenceTransformer(model_checkpoint)
     app.model_type = "sbert"
     # Define Qdrant client
-    app.client = QdrantClient(
-        host=settings.qdrant_service, port=settings.qdrant_port, timeout=None
-    )
+    app.client = QdrantClient(host=settings.qdrant_service, port=settings.qdrant_port, timeout=None)
     print("Successfully connected to Qdrant")
     yield
     print("Successfully closed Qdrant connection and released resources")
@@ -50,6 +48,7 @@ async def root():
     return {
         "message": "REST API for querying Qdrant database of 130k wine reviews from the Wine Enthusiast magazine"
     }
+
 
 app.add_middleware(
     CORSMiddleware,
