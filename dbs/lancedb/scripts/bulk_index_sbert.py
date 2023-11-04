@@ -12,12 +12,13 @@ import srsly
 from codetiming import Timer
 from dotenv import load_dotenv
 from lancedb.pydantic import pydantic_to_schema
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from api.config import Settings
 from schemas.wine import LanceModelWine, Wine
-from sentence_transformers import SentenceTransformer
+
 
 load_dotenv()
 # Custom types
@@ -97,7 +98,7 @@ def embed_batches(tbl: str, validated_data: list[JsonBlob]) -> pd.DataFrame:
 
 
 def main(data: list[JsonBlob]) -> None:
-    DB_NAME = "../lancedb"
+    DB_NAME = f"../{get_settings().lancedb_dir}"
     TABLE = "wines"
     db = lancedb.connect(DB_NAME)
 
@@ -115,7 +116,7 @@ def main(data: list[JsonBlob]) -> None:
     with Timer(name="Create index", text="Created IVF-PQ index in {:.4f} sec"):
         # Creating index (choose num partitions as a power of 2 that's closest to len(dataset) // 5000)
         # In this case, we have 130k datapoints, so the nearest power of 2 is 130000//5000 ~ 32)
-        tbl.create_index(metric="cosine", num_partitions=32, num_sub_vectors=96)
+        tbl.create_index(metric="cosine", num_partitions=4, num_sub_vectors=32)
 
 
 if __name__ == "__main__":
