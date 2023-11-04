@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
@@ -26,7 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.model = SentenceTransformer(model_checkpoint)
     app.model_type = "sbert"
     # Define Qdrant client
-    app.client = QdrantClient(host=settings.qdrant_service, port=settings.qdrant_port)
+    app.client = QdrantClient(host=settings.qdrant_service, port=settings.qdrant_port, timeout=None)
     print("Successfully connected to Qdrant")
     yield
     print("Successfully closed Qdrant connection and released resources")
@@ -48,6 +49,15 @@ async def root():
         "message": "REST API for querying Qdrant database of 130k wine reviews from the Wine Enthusiast magazine"
     }
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
 # Attach routes
 app.include_router(rest.router, prefix="/wine", tags=["wine"])

@@ -4,12 +4,11 @@ from functools import lru_cache
 
 import lancedb
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sentence_transformers import SentenceTransformer
 
 from api.config import Settings
 from api.routers.rest import router
-
-model_type = "sbert"
 
 
 @lru_cache()
@@ -24,9 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     model_checkpoint = settings.embedding_model_checkpoint
     app.model = SentenceTransformer(model_checkpoint)
-    app.model_type = "sbert"
     # Define LanceDB client
-    db = lancedb.connect("./lancedb")
+    db = lancedb.connect("./winemag")
     app.table = db.open_table("wines")
     print("Successfully connected to LanceDB")
     yield
@@ -52,3 +50,11 @@ async def root():
 
 # Attach routes
 app.include_router(router, prefix="/wine", tags=["wine"])
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8000"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
