@@ -2,7 +2,6 @@ version: "3.9"
 
 services:
   fastapi:
-    platform: linux/x86_64
     image: lancedb_wine_fastapi:${TAG}
     build:
       context: .
@@ -12,6 +11,6 @@ services:
       - .env
     ports:
       - ${API_PORT}:8000
-    volumes:
-      - ./:/winex
+    environment:
+      - LANCEDB_CONFIG_DIR=/wine
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
